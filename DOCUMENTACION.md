@@ -4,9 +4,9 @@ Referencia técnica de la aplicación: qué hace cada funcionalidad, cómo está
 implementada, dónde vive y qué variables/estados intervienen.
 
 - **Proyecto:** `Vitalis/`
-- **Última revisión:** 26/10/2026
+- **Última revisión:** 28/10/2026
 - **Alcance:** flujos simulados sin backend (autenticación, sesión, búsqueda,
-  contenidos, favoritos, hábitos y perfil).
+  exploración, contenidos, favoritos, hábitos y perfil).
 
 ---
 
@@ -20,8 +20,8 @@ implementada, dónde vive y qué variables/estados intervienen.
 6. [Contratos de datos y almacenamiento](#6-contratos-de-datos-y-almacenamiento)
 7. [Autenticación y sesión](#7-autenticación-y-sesión)
 8. [Home (dashboard)](#8-home-dashboard)
-9. [Búsqueda](#9-búsqueda)
-10. [Contenidos](#10-contenidos)
+9. [Contenidos Saludables (biblioteca)](#9-contenidos-saludables-biblioteca)
+10. [Explorar (biblioteca)](#10-explorar-biblioteca)
 11. [Favoritos y hábitos](#11-favoritos-y-hábitos)
 12. [Perfil](#12-perfil)
 13. [Componentes compartidos, layout y autenticación](#13-componentes-compartidos-layout-y-autenticación)
@@ -121,10 +121,10 @@ Definidas en `src/App.jsx`.
 | `/login` | `pages/login/Login.jsx` | Sin layout | `Iniciar Sesión \| Vitalis` |
 | `/registro` | `pages/registro/Registro.jsx` | Sin layout | `Crear cuenta \| Vitalis` |
 | `/` | `pages/home/Home.jsx` | `AppLayout` | `Dashboard \| Vitalis` |
+| `/busqueda` | `pages/busqueda/Explorar.jsx` | `AppLayout` | `Explorar \| Vitalis` |
 | `/contenidos` | `pages/contenidos/Contenidos.jsx` | `AppLayout` | `Contenidos Saludables \| Vitalis` |
-| `/busqueda` | `pages/busqueda/Busqueda.jsx` | `AppLayout` | `Búsqueda \| Vitalis` o `Resultados para … \| Vitalis` |
-| `/habitos` | `pages/habitos/Habitos.jsx` | `AppLayout` | `Mis Hábitos \| Vitalis` |
-| `/favoritos` | `pages/favoritos/Favoritos.jsx` | `AppLayout` | `Mis Favoritos y Hábitos \| Vitalis` |
+| `/favoritos` | `pages/habitos/Habitos.jsx` | `AppLayout` | `Mis Favoritos y Hábitos \| Vitalis` |
+| `/habitos` | Redirección a `/favoritos` | `AppLayout` | — |
 | `/perfil` | `pages/perfil/Perfil.jsx` | `AppLayout` | `Mi Perfil \| Vitalis` |
 | `*` | Redirección a `/` | — | — |
 
@@ -136,12 +136,23 @@ Definidas en `src/App.jsx`.
 4. `Footer` (escritorio).
 5. `MobileBottomNav` (móvil).
 
+En `App.jsx`, el componente `ScrollToTop` (`src/components/layout/ScrollToTop.jsx`)
+escucha los cambios de ruta (`pathname`) y restablece de inmediato el desplazamiento
+de la ventana y del documento (`window.scrollTo({ top: 0, left: 0, behavior: 'instant' })`)
+hacia el encabezado en cada transición entre páginas de la aplicación.
+
 ### 2.1 Separación escritorio/móvil
 
-El breakpoint es `lg` (1024 px). Home, Login y Registro montan ambas variantes y
-las alternan por CSS (`lg:hidden` / `hidden lg:block`), no por JavaScript. Cada
-variante tiene su propia instancia de formulario/hook, por lo que el estado de
-las dos no se comparte.
+El breakpoint es `lg` (1024 px). Home, Login, Registro y `/favoritos` montan
+ambas variantes y las alternan por CSS (`lg:hidden` / `hidden lg:block`), no por
+JavaScript. En esas páginas cada variante tiene su propia instancia de
+formulario/hook, por lo que el estado local (por ejemplo, filtros o día
+seleccionado) no se comparte; los hábitos y favoritos globales sí viven en sus
+contextos. `/perfil`, `/busqueda` y `/contenidos` son la excepción: un único `useProfile`,
+`useExplorarPage` o `useContenidosPage` alimenta las dos vistas con el mismo
+objeto (`profile`, `explore` o `contenidos`), de modo que edición, preferencias,
+avisos y logout —o búsqueda, filtros, favoritos y avisos— se comparten aunque
+cambie el viewport.
 
 ---
 
@@ -156,12 +167,13 @@ las dos no se comparte.
 | Sesión persistente | Global | `context/hooks/useAuthSession.js` + `context/authStorage.js` | Header/Perfil | Clave `vitalis.auth.session` |
 | Acceso social | Login/Registro | `hooks/useSocialAuthLogin.js` + `components/auth/hooks/useSocialAuth.js` | `SocialAuthButtons.jsx` | `data/authData.js` |
 | Búsqueda desde Home | Home | `pages/home/hooks/useSearchForm.js` | `SearchSection.jsx`, `MobileSearch.jsx` | `contentFilters` |
-| Búsqueda avanzada | `/busqueda` | `pages/busqueda/hooks/useBusquedaPage.js` | `Busqueda.jsx` | `recommendedContent` |
-| Catálogo y filtros | `/contenidos` | `pages/contenidos/hooks/useContentsPage.js` | `Contenidos.jsx` | `recommendedContent` |
-| Favoritos | Corazón de tarjetas y `/favoritos` | `context/hooks/useFavoritesState.js`, `useFavoritesPage.js` | `ContentCard.jsx`, `MobileContentCard.jsx`, `Favoritos.jsx` | `recommendedContent` |
-| Hábitos | Home, `/habitos`, `/favoritos` | `context/hooks/useHabitsState.js` | `HabitsSection.jsx`, `MobileHabits.jsx`, `HabitRow.jsx` | `initialHabits` |
+| Explorar biblioteca | `/busqueda` | `pages/busqueda/hooks/useExplorarPage.js` | `Explorar.jsx`, `DesktopExplorar.jsx`, `mobile/MobileExplorar.jsx` y subcomponentes | `exploreContentData.js`, `explorePageData.js` |
+| Biblioteca de contenidos | `/contenidos` | `pages/contenidos/hooks/useContenidosPage.js` | `Contenidos.jsx`, `DesktopContenidos.jsx`, `mobile/MobileContenidos.jsx` y subcomponentes | `exploreContents`, `contenidosPageData.js` |
+| Favoritos | Corazón de tarjetas y `/favoritos` | `context/hooks/useFavoritesState.js` + `useExplorarPage`/`useHabitosPage` | `ContentCard.jsx`, `MobileContentCard.jsx`, `ExploreContentCard.jsx`, `MobileExploreCard.jsx`, `SavedContents.jsx`, `MobileSavedContents.jsx` | `recommendedContent` |
+| Checklist de hábitos | Home y `/favoritos` | `context/hooks/useHabitsState.js` | `HabitsSection.jsx`, `MobileHabits.jsx`, `HabitRow.jsx` | `initialHabits` |
+| Página de favoritos y hábitos | `/favoritos` | `useHabitosPage` + `useHabitCard` | `DesktopHabitos.jsx`, `mobile/MobileHabitos.jsx` y subcomponentes | `initialHabits`, `habitsPageData`, `recommendedContent` |
 | Desafío semanal | Home escritorio | `pages/home/hooks/useWeeklyChallenge.js` | `WeeklyChallenge.jsx` | `weeklyChallenge` |
-| Perfil y logout | `/perfil` | `pages/perfil/hooks/useProfile.js` | `Perfil.jsx` | Sesión + contextos |
+| Perfil y logout | `/perfil` | `pages/perfil/hooks/useProfile.js` | `DesktopPerfil.jsx`, `mobile/MobilePerfil.jsx` y subcomponentes | `data/profileData.js`, sesión, hábitos y favoritos |
 | Navegación | Global | — | `Header.jsx`, `MobileHeader.jsx`, `MobileBottomNav.jsx` | — |
 
 ---
@@ -175,7 +187,7 @@ cada dato.
 | Archivo | Variable | Declaración | Valor inicial | Función |
 | --- | --- | --- | --- | --- |
 | `context/hooks/useAuthSession.js` | `session` | `useState(readStoredSession)` | Sesión almacenada o `null` | Sesión activa normalizada |
-| `context/hooks/useHabitsState.js` | `habits` | `useState(initialHabits)` | 5 hábitos mock | Lista y estado de hábitos |
+| `context/hooks/useHabitsState.js` | `habits` | `useState(initialHabits)` | 6 hábitos mock | Lista y estado de hábitos |
 | `context/hooks/useFavoritesState.js` | `favorites` | `useState(() => new Set())` | `Set` vacío | IDs de contenidos favoritos |
 | `pages/login/hooks/useLoginForm.js` | `email` | `useState('')` | `''` | Correo del formulario |
 |  | `password` | `useState('')` | `''` | Contraseña del formulario |
@@ -201,12 +213,30 @@ cada dato.
 | `pages/home/hooks/useSearchForm.js` | `query` | `useState('')` | `''` | Texto de búsqueda de Home |
 |  | `activeFilter` | `useState('all')` | `'all'` | Filtro temático de Home |
 | `pages/home/hooks/useWeeklyChallenge.js` | `registered` | `useState(false)` | `false` | Cena del desafío registrada |
-| `pages/home/hooks/useMobileHabitRow.js` | `expanded` | `useState(false)` | `false` | Detalle clínico desplegado |
-| `pages/busqueda/hooks/useBusquedaPage.js` | `draft` | `useState({ source: urlQuery, value: urlQuery })` | Según URL | Borrador sincronizado con la URL |
-| `pages/contenidos/hooks/useContentsPage.js` | `query` | `useState('')` | `''` | Búsqueda en vivo del catálogo |
-|  | `activeFilter` | `useState('all')` | `'all'` | Filtro del catálogo |
+| `pages/home/hooks/useMobileHabitRow.js` | `expanded` | `useState(false)` | `false` | Detalle clínico desplegado en Home móvil |
+| `pages/habitos/hooks/useHabitosPage.js` | `activeTimeFilter` | `useState('all')` | `'all'` | Filtro por momento del día en `/favoritos` |
+|  | `selectedDayId` | `useState(fn)` | Día de hoy | Día seleccionado en la semana |
+|  | `logStatus` | `useState('idle')` | `'idle'` | Envío simulado de bitácora al médico |
+| `pages/habitos/hooks/useHabitCard.js` | `expanded` | `useState(false)` | `false` | Detalle clínico desplegado en tarjetas desktop |
+| `pages/contenidos/hooks/useContenidosPage.js` | `draft` | `useState({ source: urlQuery, value: urlQuery })` | Según URL | Borrador del buscador sincronizado con la URL |
+|  | `sort` | `useState('recent')` | `'recent'` | Orden de los resultados |
+|  | `view` | `useState('grid')` | `'grid'` | Vista de cuadrícula o lista |
+|  | `notice` | `useState('')` | `''` | Aviso de favoritos y acciones simuladas |
+| `pages/busqueda/hooks/useExplorarPage.js` | `query` | `useState(fn)` | `q` de la URL o `''` | Búsqueda en vivo de Explorar |
+|  | `activeFilter` | `useState(fn)` | `filtro` de la URL mapeado o `'all'` | Categoría activa |
+|  | `quickFilters` | `useState(defaultQuickFilters)` | `{ duration: 'any', goal: 'any', evidence: 'any', diet: 'any' }` | Filtros rápidos de duración, objetivo, evidencia y dieta |
+|  | `isMobileFiltersOpen` | `useState(false)` | `false` | Panel de filtros móvil abierto |
+|  | `isLoadingMore` | `useState(false)` | `false` | Carga simulada de más contenidos |
+|  | `isFeaturedSaved` | `useState(false)` | `false` | Guía destacada guardada (simulado) |
+|  | `notice` | `useState('')` | `''` | Aviso de favoritos y acciones simuladas |
 | `pages/perfil/hooks/useProfile.js` | `logoutStatus` | `useState('idle')` | `idle` | Estado del cierre de sesión |
-|  | `notice` | `useState('')` | `''` | Aviso posterior al logout |
+|  | `notice` | `useState('')` | `''` | Aviso de logout y acciones simuladas |
+|  | `exportStatus` | `useState('idle')` | `idle` | Generación simulada del informe |
+|  | `preferences` | `useState(fn)` | Toggles de `profilePrivacySettings` | Preferencias de privacidad |
+|  | `mobilePanel` | `useState(null)` | `null` | Panel móvil abierto: `notifications`, `privacy` o ninguno |
+|  | `savedName` | `useState({ sessionId: null, name: '' })` | Objeto | Nombre editado ligado a la sesión |
+|  | `isEditing` | `useState(false)` | `false` | Formulario de nombre abierto |
+|  | `draftName` | `useState('')` | `''` | Borrador del nombre visible |
 
 No hay `useState` en archivos `.jsx`: la presentación recibe todo por props o
 por hooks.
@@ -222,6 +252,17 @@ por hooks.
 | `utils/validation.js` | `EMAIL_PATTERN` | `/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/` | Validación de correo |
 | `pages/home/hooks/useWelcomeBanner.js` | `CIRCUMFERENCE` | `188.4` | Perímetro del anillo SVG |
 | `pages/home/hooks/useSearchForm.js` | `searchInputRef` | `useRef(null)` | Foco con `Ctrl/Cmd + K` |
+| `pages/busqueda/hooks/useExplorarPage.js` | `defaultQuickFilters` | `{ duration: 'any', goal: 'any', evidence: 'any', diet: 'any' }` | Valores iniciales y reset de filtros |
+| `pages/busqueda/hooks/useExplorarPage.js` | `legacyFilterMap` | `breakfast/gluten-free → nutrition`, `hiit/strength → training`, `mindfulness → mental` | Traduce los filtros de Home a categorías de Explorar |
+| `pages/busqueda/components/ExplorePagination.jsx` | `pages` | `[1, 2, 3, 'ellipsis', 24]` | Paginación simulada |
+| `components/ui/FavoriteButton.jsx` | `variantStyles` | `overlay`, `mini`, `outline`, `plain` | Variantes visuales del corazón compartido |
+| `pages/contenidos/hooks/useContenidosPage.js` | `legacyTypeMap` | `breakfast/gluten-free/nutrition → recipe`, `hiit/strength/training/mindfulness/mental → routine`, `articles/sleep → article` | Traduce los filtros de Home a tipos de `/contenidos` |
+| `pages/contenidos/hooks/useContenidosPage.js` | `evidenceRank`, `typeRank` | `level-1 > peer > clinical`; `recipe < article < routine` | Desempate del orden por tipo |
+| `data/contenidosPageData.js` | `contentSortOptions` | `recent`, `duration`, `popularity`, `type` | Orden de `/contenidos` |
+| `data/contenidosPageData.js` | `contentTypes` | `all`, `recipe`, `article`, `routine` | Filtros por tipo |
+| `data/contenidosPageData.js` | `contentCollections` | `all`, `nutrition`, `movement`, `evidence`, `calm` | Colecciones de la biblioteca |
+| `data/contenidosPageData.js` | `contentPopularity` | Mapa de los 6 IDs | Orden por popularidad |
+| `data/contenidosPageData.js` | `contentPresentation` | Mapa de los 6 IDs | Variante de tarjeta, acciones y copy específico |
 | `pages/login/hooks/useLoginForm.js` | `errorMessages` | Mapa de códigos → copy | Traducción de errores |
 | `pages/registro/hooks/useRegisterForm.js` | `fieldErrorMessages` | Mapa de códigos → copy | Traducción de errores |
 | `pages/registro/utils/passwordStrength.js` | `strengthMeta` | `0..3` → etiqueta y tono | Fuerza de contraseña |
@@ -272,38 +313,64 @@ Forma del objeto guardado:
 
 ### 6.2 Contenido
 
-Definido en `data/homeData.js` (`recommendedContent`). Forma relevante:
+El catálogo compartido se define en `data/exploreContentData.js` como
+`exploreContents` (6 elementos). `homeData.js` exporta `recommendedContent`
+mapeando esos mismos objetos y añadiendo `category` desde `homeCategory`, de
+modo que Home, `/busqueda`, `/contenidos` y `/favoritos` comparten IDs y
+favoritos. Forma relevante:
 
 ```js
 {
   id: 'nordic-salmon-bowl',
+  type: 'recipe',                       // 'recipe' | 'article' | 'routine'
+  exploreFilterIds: ['nutrition'],      // categorías de Explorar
+  quick: {
+    minutes: 20,
+    goals: ['longevity', 'anti-inflammatory'],
+    evidence: 'peer',
+    diets: ['gluten-free', 'mediterranean']
+  },
   image: '/images/salmon-bowl.jpg',
   imageAlt: '...',
-  topBadgeIcon: 'verified_user',
-  topBadgeLabel: 'Basado en tu perfil',
-  tags: [{ label: '32g Proteína', className: '...' }],
-  duration: '15 min prep',
-  durationIcon: 'schedule',
-  difficulty: 'Fácil',
-  difficultyIcon: 'signal_cellular_alt_1_bar',
-  difficultyClass: 'text-primary',
+  badge: 'Nutrición Celular',
+  badgeClass: '...',
   title: '...',
+  shortTitle: '...',
   description: '...',
-  category: 'Almuerzo / Cena',
+  meta: '20 min prep',
+  metaIcon: 'schedule',
+  secondaryMeta: '420 kcal',
+  tags: [{ label: '34g Proteína', className: '...' }],
+  evidence: null,
+  author: 'Lic. Carlos Méndez',
+  authorRole: 'Nutrición Funcional',
+  footerNote: '...',
+  footerIcon: 'restaurant',
+  quote: null,
   cta: 'Ver receta',
   ctaIcon: 'restaurant_menu',
   ctaVariant: 'secondary',
-  filterIds: ['breakfast', 'gluten-free'],
+  homeCategory: 'Almuerzo / Cena',
+  filterIds: ['breakfast', 'gluten-free'], // filtros de Home/Contenidos Saludables
   mobile: {
-    category: 'Nutrición',
+    category: 'Nutrición Celular',
     categoryClass: 'text-primary',
-    time: '15 min',
+    time: '20 min',
     cta: 'Ver receta',
-    ctaIcon: 'arrow_forward',
-    ctaVariant: 'primary'
+    ctaIcon: 'chevron_right',
+    ctaVariant: 'secondary',
+    footer: 'Almuerzo antiinflamatorio',
+    footerIcon: 'restaurant',
+    kcal: '420 kcal',
+    protein: '34g Proteína',
+    note: ''
   }
 }
 ```
+
+`quick` alimenta los filtros rápidos; `mobile` contiene las variantes compactas
+de la tarjeta móvil. Los artículos usan `quote` y `evidence`, y las tarjetas de
+Explorar cambian de composición según `type`.
 
 ### 6.3 Hábito
 
@@ -694,8 +761,8 @@ Consume `HabitsContext` y devuelve exactamente:
 - `totalCount`
 - `progress`
 
-No duplica estado; cualquier cambio se refleja en Home, `/habitos`,
-`/favoritos`, el banner y la gráfica semanal.
+No duplica estado; cualquier cambio se refleja en Home, `/favoritos`, el banner y
+la gráfica semanal.
 
 ### 8.4 `useWelcomeBanner`
 
@@ -739,81 +806,291 @@ Vitalis y el anillo de progreso móvil.
 
 ---
 
-## 9. Búsqueda
+## 9. Contenidos Saludables (biblioteca)
 
-Página: `src/pages/busqueda/Busqueda.jsx`.
-Hook: `src/pages/busqueda/hooks/useBusquedaPage.js`.
+Página: `src/pages/contenidos/Contenidos.jsx`.
+Hook: `src/pages/contenidos/hooks/useContenidosPage.js`.
+Datos: `src/data/contenidosPageData.js` (copy, colecciones, tipos, orden y
+presentación) y `src/data/exploreContentData.js` (catálogo compartido).
+Vistas: `DesktopContenidos.jsx` y `mobile/MobileContenidos.jsx`.
 
-### 9.1 Contrato de URL
+`Contenidos.jsx` ejecuta una sola vez `useContenidosPage` y pasa el mismo objeto
+`contenidos` a ambas vistas. Búsqueda, tipo, colección, orden, vista, favoritos y
+avisos sobreviven al cambio de viewport; el chrome global (`Header`,
+`MobileHeader`, `MobileBottomNav` y `Footer`) lo aporta `AppLayout`. El aviso
+compartido se monta una sola vez con `NoticeToast`.
+
+### 9.1 Composición
+
+| Archivo | Rol |
+| --- | --- |
+| `pages/contenidos/Contenidos.jsx` | Controlador: hook compartido, alternancia desktop/móvil y aviso |
+| `pages/contenidos/DesktopContenidos.jsx` | Hero, colecciones, filtros, grid/lista, estado vacío y paginación |
+| `pages/contenidos/mobile/MobileContenidos.jsx` | Cabecera compacta, pestañas, buscador/orden, tarjetas y CTA |
+| `pages/contenidos/components/ContentHero.jsx` | Contador, buscador con `Ctrl/Cmd + K`, orden y conmutador grid/lista |
+| `pages/contenidos/components/ContentCollections.jsx` | Colecciones con conteo real, gestión simulada y “Nueva Colección” |
+| `pages/contenidos/components/ContentTypeFilters.jsx` | Chips de tipo con conteo dentro de la colección activa |
+| `pages/contenidos/components/ContentLibraryCard.jsx` | Selector de tarjeta según `contentPresentation.desktopVariant` |
+| `pages/contenidos/components/ContentVisualCard.jsx` | Tarjeta visual de receta/rutina con macros o equipo, CTA y acciones |
+| `pages/contenidos/components/ContentArticleCard.jsx` | Tarjeta de artículo con autoría, cita o insight y acción clínica |
+| `pages/contenidos/components/ContentRoutineCard.jsx` | Tarjeta de rutina con impacto biométrico, recomendación y agenda |
+| `pages/contenidos/components/ContentPagination.jsx` | Resumen “Mostrando X de Y” y paginación de una sola página |
+| `pages/contenidos/components/ContentEmptyState.jsx` | Estado vacío con reinicio de búsqueda, tipo y colección |
+| `pages/contenidos/mobile/MobileContentHeader.jsx` | Título, conteo y descripción móvil |
+| `pages/contenidos/mobile/MobileContentTypeFilters.jsx` | Pestañas deslizables por tipo |
+| `pages/contenidos/mobile/MobileContentToolbar.jsx` | Buscador y orden rápido |
+| `pages/contenidos/mobile/MobileLibraryCard.jsx` | Variantes `recipeHero`, `recipeCompact`, `article` y `routine` |
+| `pages/contenidos/mobile/MobileNewCollectionCta.jsx` | CTA inferior “+ Nueva Colección” |
+| `components/ui/FavoriteButton.jsx` | Corazón compartido con `/busqueda` |
+| `components/ui/NoticeToast.jsx` | Aviso `role="status"` compartido con `/busqueda` |
+
+### 9.2 Contrato de URL
 
 | Parámetro | Ejemplo | Regla |
 | --- | --- | --- |
-| `q` | `?q=salmón` | Texto libre; se recorta con `trim()` |
-| `filtro` | `?filtro=gluten-free` | Debe existir en `contentFilters`; si no, se usa `all` |
+| `q` | `?q=salmón` | Texto libre; se recorta con `trim()`; se omite si queda vacío |
+| `filtro` | `?filtro=recipe` | Debe ser un tipo de `contentTypes` o un filtro heredado; si no, `all` |
+| `coleccion` | `?coleccion=calm` | Debe existir en `contentCollections`; si no, `all` |
 
-La página es la fuente de verdad de la búsqueda comprometida. El formulario usa
-un borrador local para escribir sin actualizar la URL en cada tecla.
+`updateParams(nextQuery, nextType, nextCollection)` construye un
+`URLSearchParams` limpio y llama a `setSearchParams(params, { replace: true })`.
+La URL es la fuente de verdad de la búsqueda comprometida; el formulario usa un
+borrador local (`draft.source === urlQuery`) para escribir sin actualizar la URL
+en cada tecla.
 
-### 9.2 `useBusquedaPage`
+`filtro` también acepta los identificadores de Home y los traduce a tipos:
 
-Declaraciones:
+| `filtro` heredado | Tipo |
+| --- | --- |
+| `breakfast`, `gluten-free`, `nutrition` | `recipe` |
+| `hiit`, `strength`, `training`, `mindfulness`, `mental` | `routine` |
+| `articles`, `sleep` | `article` |
 
-```js
-const [searchParams, setSearchParams] = useSearchParams()
-const urlQuery = searchParams.get('q')?.trim() ?? ''
-const urlFilter = resolveFilter(searchParams.get('filtro') ?? 'all')
-const [draft, setDraft] = useState({ source: urlQuery, value: urlQuery })
-const query = draft.source === urlQuery ? draft.value : urlQuery
-```
+Cualquier otro valor cae en `all`.
+
+### 9.3 Estado y derivados de `useContenidosPage`
 
 | Variable | Tipo | Descripción |
 | --- | --- | --- |
+| `copy` | objeto | `contenidosCopy` |
+| `sortOptions` | array | `contentSortOptions` |
+| `typeFilters` | array | `contentTypes` con conteo dentro de la colección activa |
+| `collections` | array | `contentCollections` con conteo real |
+| `results` | array | Contenidos de la colección que cumplen tipo y búsqueda, ya ordenados |
+| `total` | `number` | Total del catálogo (`exploreContents.length`, 6) |
+| `collectionTotal` | `number` | Contenidos de la colección activa antes de tipo/búsqueda |
 | `query` | `string` | Borrador visible; se resincroniza si cambia la URL |
-| `activeFilter` | `string` | `urlFilter` resuelto |
-| `filters` | `array` | `contentFilters` |
-| `results` | `array` | Contenidos filtrados por la URL |
-| `total` | `number` | Total del catálogo |
-| `committedQuery` | `string` | Consulta realmente aplicada |
-| `hasFilters` | `boolean` | Hay `q` o filtro distinto de `all` |
+| `activeType` | `string` | Tipo resuelto desde `filtro` |
+| `activeCollection` | `string` | Colección resuelta desde `coleccion` |
+| `sort` | `string` | `recent`, `duration`, `popularity` o `type` |
+| `view` | `string` | `grid` o `list` |
+| `hasFilters` | `boolean` | Hay `q` comprometida, tipo o colección distinta de `all` |
+| `notice` | `string` | Aviso visible de la página |
+| `searchInputRef` | `ref` | Foco del buscador con `Ctrl/Cmd + K` |
+| `isFavorite` | `función` | Consulta `FavoritesContext` |
 | `handleQueryChange` | `función` | Actualiza solo el borrador |
-| `handleSubmit` | `función` | Compromete texto y filtro actuales |
-| `handleFilterChange` | `función` | Compromete el filtro con el texto actual |
-| `clearFilters` | `función` | Limpia borrador, `q` y `filtro` |
+| `handleSubmit` | `función` | Compromete texto, tipo y colección en la URL |
+| `handleClearQuery` | `función` | Limpia la búsqueda y la URL |
+| `handleTypeChange` | `función` | Cambia el tipo y lo escribe en la URL |
+| `handleCollectionChange` | `función` | Cambia la colección y la escribe en la URL |
+| `handleSortChange` | `función` | Cambia el orden (estado local) |
+| `handleViewChange` | `función` | Cambia entre grid y lista (estado local) |
+| `handleResetFilters` | `función` | Limpia búsqueda, tipo y colección, y vuelve a `recent` |
+| `handleToggleFavorite` | `función` | Alterna el favorito y muestra aviso |
+| `handleOpenContent` | `función` | Aviso de apertura simulada |
+| `handleAction` | `función` | Resuelve acciones de tarjeta desde `contenidosCopy` |
+| `handleCreateCollection` | `función` | Aviso de creación simulada |
+| `handleManageCollections` | `función` | Aviso de gestión simulada |
+| `handlePageChange` | `función` | Aviso de paginación simulada |
+| `handleDismissNotice` | `función` | Cierra el aviso |
 
-`updateParams(nextQuery, nextFilter)` construye un `URLSearchParams` limpio,
-recorta el texto, omite `q` vacío y omite `filtro=all`, y llama a
-`setSearchParams(params, { replace: true })`.
+El atajo `Ctrl/Cmd + K` enfoca `searchInputRef`; se registra en un efecto y se
+retira al desmontar.
 
-La estrategia `draft.source === urlQuery` evita `setState` dentro de un efecto:
-si la URL cambia por navegación externa, el input muestra el valor nuevo; si el
-usuario escribe, se conserva el borrador.
+### 9.4 Filtrado, colecciones y orden
 
-`useDocumentTitle` alterna entre `Resultados para <q> | Vitalis` y
-`Búsqueda | Vitalis`.
+1. `collectionContents` filtra `exploreContents` por la colección activa:
+   - `nutrition` incluye `recipe`;
+   - `movement` incluye `routine`;
+   - `evidence` incluye `article`;
+   - `calm` usa IDs concretos (`circadian-glucose`, `vagal-mobility`);
+   - `all` no filtra.
+2. `typeFilters` cuenta `all`, recetas, artículos y entrenamientos (rutinas)
+   dentro de la colección activa. El chip de escritorio dice “Entrenamientos”,
+   como `content.html`; el móvil dice “Rutinas”, como `content2.html`.
+3. `results` aplica el tipo activo y `matchesContentQuery` de
+   `src/utils/content.js`, que normaliza mayúsculas y acentos y busca en título,
+   `shortTitle`, descripción, categoría, badge, autoría, evidencia, etiquetas y
+   campos `mobile`.
+4. El orden se aplica al final:
+   - `recent`: orden del catálogo;
+   - `duration`: minutos ascendentes;
+   - `popularity`: `contentPopularity` descendente;
+   - `type`: receta → artículo → rutina y, dentro del mismo tipo, mayor
+     evidencia (`level-1`, `peer`, `clinical`).
+
+Los conteos son reales: 6 en total y 2 por cada colección. `Rituales de Calma`
+se solapa con otras colecciones, por lo que los conteos no suman el total. La
+referencia muestra 24 contenidos; la demo conserva 6 y una sola página.
+
+### 9.5 Tarjetas, favoritos y avisos
+
+`contentPresentation` decide la variante de cada contenido:
+
+| ID | Escritorio | Móvil | Rasgo |
+| --- | --- | --- | --- |
+| `nordic-salmon-bowl` | visual | `recipeHero` | Macros clínicos; plan semanal y compartir |
+| `circadian-glucose` | article | `article` | Autoría, cita y “Notas” |
+| `vagal-mobility` | visual | `routine` | Equipo, articulaciones y agenda |
+| `chia-cacao-pudding` | visual | `recipeCompact` | Perfil prebiótico y lista de compras |
+| `scfa-longevity` | article | `article` | Insight de revisión clínica y “Mi plan” |
+| `zone2-mitochondria` | routine | `routine` | Impacto biométrico y agenda |
+
+- El corazón usa `FavoritesContext`: al entrar, los seis IDs de
+  `defaultFavoriteIds` ya están guardados. Cada cambio muestra un aviso propio y
+  se refleja en Home, `/busqueda` y `/favoritos` durante la navegación SPA.
+- “Nueva Colección”, “Gestionar colecciones”, “Ver receta/artículo/rutina”,
+  “Notas”, “Mi plan”, compartir, plan semanal, lista de compras, agenda y
+  paginación son acciones simuladas que muestran un aviso.
+- La paginación de escritorio muestra “Mostrando X de Y” con los conteos reales;
+  si hay búsqueda, tipo o colección activos cambia el sufijo a “en la selección
+  actual”. “Anterior” y “Siguiente” están deshabilitados porque solo existe una
+  página.
+- El estado vacío permite reiniciar búsqueda, tipo y colección.
+- En escritorio (`≥ 1024 px`) se muestra el hero completo, las colecciones
+  deslizables, los chips de tipo, el grid de 3 columnas o la lista y la
+  paginación. En móvil (`< 1024 px`) se muestra la cabecera compacta, una franja
+  con la colección activa cuando llega por URL, las pestañas de tipo, el buscador
+  con orden, las tarjetas apiladas, el CTA de nueva colección y el aviso por
+  encima del bottom nav.
 
 ---
 
-## 10. Contenidos
+## 10. Explorar (biblioteca)
 
-Página: `src/pages/contenidos/Contenidos.jsx`.
-Hook: `src/pages/contenidos/hooks/useContentsPage.js`.
+Página: `src/pages/busqueda/Explorar.jsx`.
+Hook único: `src/pages/busqueda/hooks/useExplorarPage.js`.
+Datos: `src/data/exploreContentData.js` y `src/data/explorePageData.js`.
+Vistas: `DesktopExplorar.jsx` y `mobile/MobileExplorar.jsx`.
+
+`Explorar.jsx` ejecuta una sola vez `useExplorarPage` y pasa el mismo objeto
+`explore` a ambas vistas. La página representa la biblioteca “Explorar” y
+conserva el catálogo compartido con Home, `/contenidos` y `/favoritos`.
+
+### 10.1 Composición
+
+| Archivo | Rol |
+| --- | --- |
+| `pages/busqueda/DesktopExplorar.jsx` | Cabecera, buscador, tendencias, categorías, filtros rápidos, guía, grid de tarjetas y paginación |
+| `pages/busqueda/mobile/MobileExplorar.jsx` | Header compacto, panel de filtros, tendencias, categorías, guía, tarjetas y carga simulada |
+| `pages/busqueda/components/ExploreHeader.jsx` | Breadcrumb, título, descripción, sello de actualización y EBM |
+| `pages/busqueda/components/DesktopSearch.jsx` | Buscador con `Ctrl/Cmd + K`, búsquedas recientes y acceso a filtros |
+| `pages/busqueda/components/TrendingTopics.jsx` | Chips de tendencias en versión escritorio y móvil |
+| `pages/busqueda/components/CategoryFilters.jsx` | Categorías con conteos en versión escritorio y móvil |
+| `pages/busqueda/components/QuickFilters.jsx` | Selects de duración, objetivo, evidencia y dieta |
+| `pages/busqueda/components/FeaturedGuide.jsx` | Guía destacada de escritorio y guardado simulado |
+| `pages/busqueda/components/ExploreContentCard.jsx` | Tarjeta de artículo o tarjeta visual con CTA y corazón |
+| `components/ui/FavoriteButton.jsx` | Corazón reutilizable con variantes `overlay`, `mini`, `outline` y `plain`; compartido con `/contenidos` |
+| `pages/busqueda/components/ExplorePagination.jsx` | “Cargar más” y paginación simulada |
+| `pages/busqueda/components/ExploreEmptyState.jsx` | Estado vacío con reinicio de filtros |
+| `components/ui/NoticeToast.jsx` | Aviso global `role="status"` compartido con `/contenidos` |
+| `pages/busqueda/mobile/MobileExploreHeader.jsx` | Título, conteo, buscador y botón de filtros con badge |
+| `pages/busqueda/mobile/MobileFilterPanel.jsx` | Panel plegable de filtros rápidos |
+| `pages/busqueda/mobile/MobileFeaturedGuide.jsx` | Guía destacada compacta y guardado simulado |
+| `pages/busqueda/mobile/MobileExploreCard.jsx` | Tarjetas compactas de artículo, receta o rutina |
+
+### 10.2 Estado y derivados de `useExplorarPage`
 
 | Variable | Tipo | Descripción |
 | --- | --- | --- |
-| `query` | `string` | Búsqueda en vivo |
-| `activeFilter` | `string` | Filtro activo |
-| `filters` | `array` | `contentFilters` |
-| `results` | `array` | Catálogo filtrado con `useMemo` |
-| `total` | `number` | Total de contenidos |
-| `hasFilters` | `boolean` | `query.trim()` o filtro distinto de `all` |
-| `handleQueryChange` | `función` | Actualiza el texto |
-| `handleFilterChange` | `función` | Actualiza el filtro |
-| `clearFilters` | `función` | Limpia texto y filtro |
-| `clearQuery` | `función` | Limpia solo el texto |
+| `copy` | objeto | `exploreCopy` |
+| `featured` | objeto | `exploreFeatured` |
+| `filters` | array | `exploreFilters` (categorías con conteos) |
+| `trends` | array | `exploreTrends` |
+| `recentSearches` | array | `exploreRecentSearches` |
+| `quickFilterGroups` | array | `exploreQuickFilters` |
+| `results` | array | Contenidos que cumplen categoría, filtros rápidos y búsqueda |
+| `totalLibrary` | `number` | `142`, total simulado de la biblioteca |
+| `query` | `string` | Texto de búsqueda en vivo; se inicializa con `q` |
+| `activeFilter` | `string` | Categoría activa (`all` por defecto); se inicializa con `filtro` |
+| `quickFilters` | objeto | `duration`, `goal`, `evidence` y `diet` |
+| `activeFilterCount` | `number` | Filtros rápidos activos + categoría distinta de `all` |
+| `hasFilters` | `boolean` | Hay texto, categoría o filtro rápido activo |
+| `isMobileFiltersOpen` | `boolean` | Panel móvil desplegado |
+| `isLoadingMore` | `boolean` | Carga simulada en curso |
+| `isFeaturedSaved` | `boolean` | Guía destacada marcada (estado local) |
+| `notice` | `string` | Aviso visible de la página |
+| `isFavorite` | `función` | Consulta `FavoritesContext` |
+| `handleQueryChange` | `función` | Actualiza la búsqueda |
+| `handleClearQuery` | `función` | Limpia solo el texto |
+| `handleFilterChange` | `función` | Cambia la categoría |
+| `handleQuickFilterChange` | `función` | Cambia un filtro rápido por grupo |
+| `handleResetFilters` | `función` | Limpia búsqueda, categoría y filtros rápidos |
+| `handleSearchSuggestion` | `función` | Aplica una tendencia o búsqueda reciente |
+| `handleToggleMobileFilters` | `función` | Abre o cierra el panel móvil |
+| `handleToggleFavorite` | `función` | Alterna el favorito y muestra aviso |
+| `handleOpenContent` | `función` | Aviso de apertura simulada del contenido |
+| `handleOpenFeatured` | `función` | Aviso de apertura simulada de la guía |
+| `handleToggleFeaturedSaved` | `función` | Guarda o quita la guía con aviso |
+| `handlePageChange` | `función` | Aviso de paginación simulada |
+| `handleLoadMore` | `función async` | Espera 700 ms y muestra el final de la demo |
 
-La búsqueda es inmediata: cada cambio de `query` o `activeFilter` recalcula
-`results`. El botón “Limpiar búsqueda” del input solo borra el texto; “Limpiar
-filtros” reinicia ambos.
+La URL se lee solo al montar: `q` inicializa `query` y `filtro` inicializa
+`activeFilter`. `resolveInitialFilter` acepta los ids de `exploreFilters` y
+traduce los filtros del catálogo de Home:
+
+| `filtro` de Home | Categoría de Explorar |
+| --- | --- |
+| `breakfast`, `gluten-free` | `nutrition` |
+| `hiit`, `strength` | `training` |
+| `mindfulness` | `mental` |
+
+Si el filtro no existe en ninguno de los dos catálogos, se usa `all`. Los
+cambios posteriores de búsqueda o categoría viven en el estado local y no se
+escriben de vuelta en la URL.
+
+### 10.3 Filtrado
+
+`results` se calcula con `useMemo` y aplica, en este orden:
+
+1. **Categoría:** `activeFilter === 'all'` o
+   `content.exploreFilterIds.includes(activeFilter)`.
+2. **Filtros rápidos** (`matchesQuickFilters`):
+   - `duration`: `15` y `30` limitan por minutos; `45` exige 45 minutos o más.
+   - `goal`: debe estar en `content.quick.goals`.
+   - `evidence`: debe coincidir con `content.quick.evidence`.
+   - `diet`: debe estar en `content.quick.diets`.
+3. **Texto** (`matchesContentQuery`): normaliza mayúsculas y acentos y busca en
+   título, título corto, descripción, badge, autoría, evidencia, categoría móvil,
+   footer móvil, nota móvil y etiquetas.
+
+Las tendencias y búsquedas recientes llaman a `handleSearchSuggestion`, que
+aplica el texto y reinicia categoría y filtros rápidos. El estado vacío ofrece
+`handleResetFilters`; el botón “Ver filtros” de la sección de resultados abre el
+panel móvil si está cerrado y hace scroll al inicio.
+
+### 10.4 Comportamiento
+
+- La búsqueda es inmediata en ambas vistas; no se envía a la URL ni navega,
+  salvo los parámetros `q`/`filtro` que recibe al montar desde Home.
+- El atajo `Ctrl/Cmd + K` solo existe en el buscador de escritorio y hace foco
+  en el input.
+- Los conteos de categorías (142 total; 54 recetas, 38 artículos, 26 rutinas, 14
+  sueño y 10 bienestar) son mock; la demo solo carga 6 contenidos.
+- El corazón usa `FavoritesContext`: un contenido guardado en Explorar aparece
+  en Home, `/contenidos`, `/favoritos` y en la propia página. El aviso indica si
+  se guardó o se quitó.
+- Los CTA de las tarjetas y de la guía abren avisos de demostración; no existe
+  vista de detalle.
+- “Cargar más” simula 700 ms y termina con el aviso de que se vieron todos los
+  contenidos de la demo. La paginación numérica y “Página 1 de 24” son mock.
+- El guardado de la guía destacada es independiente de `FavoritesContext` y se
+  pierde al recargar.
+- En móvil, el panel de filtros vive debajo del header; el botón de filtros
+  muestra un badge con `activeFilterCount` y “Ver filtros” solo añade el número
+  cuando hay filtros activos.
+- Todas las acciones sin backend muestran un aviso claro y se descartan con el
+  botón de cierre.
 
 ---
 
@@ -824,14 +1101,25 @@ filtros” reinicia ambos.
 Archivo: `src/context/hooks/useFavoritesState.js`.
 
 ```js
-const [favorites, setFavorites] = useState(() => new Set())
+const [favorites, setFavorites] = useState(() => new Set(defaultFavoriteIds))
+const [collections, setCollections] = useState(initialCollections)
+const [itemCollections] = useState(contentCollectionMap)
+const [scheduledIds, setScheduledIds] = useState(() => new Set())
+const [feedback, setFeedback] = useState(null)
 ```
 
-| Variable | Tipo | Descripción |
+| Variable / Método | Tipo | Descripción |
 | --- | --- | --- |
-| `favorites` | `Set<string>` | IDs de contenidos guardados |
-| `toggleFavorite(contentId)` | `función` | Crea un nuevo `Set` y añade/elimina |
-| `isFavorite(contentId)` | `función` | Consulta el `Set` |
+| `favorites` | `Set<string>` | IDs de contenidos guardados (inicializado con 6 favoritos por defecto) |
+| `toggleFavorite(contentId)` | `función` | Crea un nuevo `Set`, añade/elimina y dispara notificación toast de feedback |
+| `isFavorite(contentId)` | `función` | Consulta si un ID pertenece a `favorites` |
+| `collections` | `array` | Colecciones activas (`initialCollections` + personalizadas dinámicas) |
+| `createCollection(name)` | `función` | Añade una colección personalizada con ID normalizado y aviso toast; rechaza nombres duplicados |
+| `itemCollections` | `object` | Mapeo asociativo `contentId` -> `collectionId` |
+| `scheduleItem(contentId, title)` | `función` | Añade un contenido al plan semanal del usuario con confirmación |
+| `isScheduled(contentId)` | `función` | Indica si el contenido ya fue agendado en el plan semanal |
+| `feedback` | `object \| null` | Notificación accesible `{ type: 'success' \| 'info', message: string }` |
+| `dismissFeedback()` | `función` | Cierra la notificación toast visible |
 
 `toggleFavorite` es `useCallback` y usa actualización funcional para no mutar el
 estado anterior. `isFavorite` depende de `favorites`, por lo que las tarjetas se
@@ -850,67 +1138,216 @@ const [habits, setHabits] = useState(initialHabits)
 
 | Variable | Tipo | Descripción |
 | --- | --- | --- |
-| `habits` | `array` | Los 5 hábitos |
+| `habits` | `array` | Los 6 hábitos enriquecidos del protocolo |
 | `toggleHabit(habitId)` | `función` | Alterna `completed` por ID |
+| `addHabit(habit)` | `función` | Añade un hábito si su ID no existe |
 | `completedCount` | `number` | Hábitos completados |
-| `totalCount` | `number` | Total (`5`) |
+| `totalCount` | `number` | Total actual (`6`, o `7`/`8` tras añadir sugerencias) |
 | `progress` | `number` | Porcentaje redondeado `0–100` |
 
 `toggleHabit` mapea el array y crea un objeto nuevo solo para el hábito tocado.
-Los consumidores son `useHabitsOverview` (Home/Hábitos) y `useFavoritesPage`.
+`addHabit` usa actualización funcional y comprueba el ID para evitar duplicados;
+lo usan las sugerencias IA de `/favoritos`. Los consumidores son
+`useHabitsOverview` (Home) y `useHabitosPage`.
 
-### 11.3 Página de favoritos
+Cada hábito conserva los campos antiguos (`title`, `detail`, `tag`, `icon`,
+`mobileDetail`, `mobileTip`) y añade metadatos para la nueva página:
+`categoryId`, `badge`, `badgeClass`, `streakDays`, `timeOfDay`,
+`scheduleLabel`, `showProgressBar`, `progress` y etiquetas de progreso.
 
-Hook: `src/pages/favoritos/hooks/useFavoritesPage.js`.
+### 11.3 Colecciones, filtros, búsqueda y modales en Favoritos
+
+La sección de contenidos favoritos se amplió con capacidades avanzadas inspiradas
+en las maquetas `content.html` y `content2.html`:
+
+1. **Gestión de Colecciones Dinámicas (`Collections Tabs`)**:
+   - Barra horizontal de pestañas: *Todas las colecciones*, *Recetas Antiinflamatorias*,
+     *Movimiento & Recuperación*, *Artículos Clínicos*, *Meditaciones Guiadas*.
+   - Botón `+ Nueva Colección`: Abre `CreateCollectionModal.jsx`, permitiendo crear
+     en tiempo real nuevas carpetas temáticas que se integran con sus conteos reactivos.
+
+2. **Filtros por Tipo de Contenido (`Category Chips`)**:
+   - Píldoras con conteo en vivo: *Todos*, *Recetas*, *Artículos & Guías*, *Entrenamientos*.
+
+3. **Búsqueda en Tiempo Real y Selector de Ordenación (`Search & Sort`)**:
+   - `searchQuery`: Búsqueda instantánea insensible a mayúsculas que examina título,
+     descripción, autor y etiquetas clínicas.
+   - `sortBy`: Reordena por `recent` (orden de guardado), `duration` (tiempo estimado) o
+     `popularity` (relevancia).
+   - Alternador de modo de vista: Cuadrícula (`grid_view`) vs Lista (`view_list`).
+
+4. **Acciones Interactivas y Diálogos Modales**:
+   - `CreateCollectionModal.jsx`: Creación interactiva de colecciones con foco accesible
+     y cierre con `Escape`.
+   - `ContentDetailModal.jsx`: Diálogo accesible para inspeccionar en profundidad la
+     receta, cita de evidencia clínica o protocolo de rutina antes de ejecutarlo.
+   - `ContentNoteModal.jsx`: Permite guardar y editar notas clínicas o de preparación
+     personales vinculadas al contenido.
+   - Agendamiento en el plan semanal (`scheduleItem`) con microinteracción visual en el
+     botón de calendario y feedback toast no invasivo.
+
+Los componentes `SavedContents` (escritorio) y `MobileSavedContents` (móvil)
+consumen `FavoritesContext` y exponen esta experiencia en ambas resoluciones.
+
+### 11.4 Página `/favoritos` (Mis Favoritos y Hábitos)
+
+Ruta canónica: `/favoritos`. `/habitos` redirige a `/favoritos` para conservar
+enlaces antiguos. `Habitos.jsx` alterna las dos vistas con `lg:hidden` /
+`hidden lg:block`:
+
+| Archivo | Rol |
+| --- | --- |
+| `pages/habitos/DesktopHabitos.jsx` | Composición de escritorio: hero, progreso, semana, categorías, guardados, analítica, IA y especialista |
+| `pages/habitos/mobile/MobileHabitos.jsx` | Composición móvil: hero compacto, tira semanal, filtros, tarjetas, sugerencia, guardados y FAB |
+| `pages/habitos/hooks/useHabitosPage.js` | Estado, derivados y handlers de toda la página |
+| `pages/habitos/hooks/useHabitCard.js` | Expansión del detalle clínico por tarjeta desktop |
+
+Componentes de escritorio:
+
+| Componente | Rol |
+| --- | --- |
+| `HabitsHero.jsx` | Bienvenida, resumen 4/6 y micro-métricas |
+| `DailyProgressCard.jsx` | Anillo de cumplimiento y progreso por categoría |
+| `WeeklyCalendar.jsx` | Semana, navegación de días y filtros por momento |
+| `HabitCategoryGroups.jsx` | Agrupación por categorías y estado vacío del filtro |
+| `HabitCard.jsx` | Tarjeta con checkbox, racha, progreso y detalle expandible |
+| `HabitCheckbox.jsx` | Checkbox reutilizable de escritorio y móvil |
+| `HabitTipCard.jsx` | Tip de preparación para mañana |
+| `SavedContents.jsx` | Contenidos favoritos y estado vacío de escritorio |
+| `ConsistencyChart.jsx` | Barras de adherencia de los últimos 7 días |
+| `ConsistencyHeatmap.jsx` | Mapa de calor de 35 días |
+| `AiSuggestions.jsx` | Sugerencias IA que añaden hábitos reales al contexto |
+| `SpecialistCard.jsx` | Tarjeta médica y envío simulado de bitácora |
+
+Componentes móviles:
+
+| Componente | Rol |
+| --- | --- |
+| `MobileHabitsHero.jsx` | Resumen 4/6, anillo y 3 micro-métricas |
+| `MobileWeekStrip.jsx` | Selector semanal compacto |
+| `MobileHabitList.jsx` | Filtros deslizables, lista y estado vacío |
+| `MobileHabitCard.jsx` | Tarjeta táctil con racha, icono y progreso |
+| `MobileSuggestionBanner.jsx` | Sugerencia IA con acción “Añadir” |
+| `MobileSavedContents.jsx` | Contenidos favoritos y estado vacío en móvil |
+| `MobileRegisterFab.jsx` | FAB “Registrar Hábito” |
+
+`useHabitosPage({ listId })` devuelve:
 
 | Variable | Tipo | Descripción |
 | --- | --- | --- |
-| `favoriteContents` | `array` | Contenidos del catálogo cuyo ID está en `favorites` |
-| `favoriteCount` | `number` | `favorites.size` |
-| `habits` | `array` | Primeros 3 hábitos para el panel lateral |
-| `pendingCount` | `number` | Hábitos pendientes sobre los 5 totales |
-| `completedCount` | `number` | Completados |
-| `totalCount` | `number` | Total |
-| `progress` | `number` | Porcentaje |
-| `toggleHabit` | `función` | Alterna un hábito |
+| `user` | objeto | Usuario activo |
+| `habits` / `filteredHabits` | `array` | Protocolo completo / filtrado por momento |
+| `favoriteContents`, `favoriteCount` | varios | Contenidos favoritos derivados de `FavoritesContext` |
+| `categorizedHabits` | `array` | Categorías con hábitos y progreso propio |
+| `categoryProgress` | `array` | Progreso por categoría para el panel general |
+| `completedCount`, `totalCount`, `progress`, `remainingCount` | `number` | Contadores globales derivados |
+| `toggleHabit` | `función` | Alterna un hábito en el contexto |
+| `activeTimeFilter`, `timeFilterOptions`, `handleTimeFilterChange` | varios | Filtro `all`/`morning`/`afternoon`/`evening` con conteos |
+| `selectedDay`, `selectedDayId`, `handleSelectDay`, `handlePreviousDay`, `handleNextDay`, `canGoPrevious`, `canGoNext` | varios | Semana navegable |
+| `week` | objeto | Semana con el día de hoy sincronizado a los contadores reales |
+| `metrics`, `adherence`, `heatmap` | objetos | Datos mock; hoy y la última celda se recalculan con el progreso |
+| `suggestions`, `isSuggestionAdded`, `handleAddSuggestion` | varios | Sugerencias IA y alta en `HabitsContext` |
+| `recoveryTip`, `specialist`, `copy` | objetos | Copy y tarjetas informativas |
+| `logStatus`, `handleSendLog` | varios | Envío simulado (`idle` → `loading` → `success`, 700 ms) |
+| `handleRegisterHabit` | `función` | Scroll suave a la lista visible (`scroll-mt-24`) |
 
-La página muestra tarjetas de resumen, los contenidos guardados, una barra de
-progreso y 3 hábitos. Si no hay favoritos, muestra un estado vacío con enlace a
-`/contenidos`.
+Comportamiento:
+
+- Las dos vistas están montadas a la vez y comparten los hábitos y favoritos
+  globales, pero cada una mantiene su propio filtro, día seleccionado y estado de
+  bitácora.
+- “Registrar hábito” no abre un formulario: desplaza a la lista para registrar
+  el hábito desde su checkbox.
+- Añadir una sugerencia incrementa el total global (6 → 7 → 8) y actualiza el
+  hero, el anillo, la semana, Home y esta misma página.
+- Los contenidos guardados se derivan de `FavoritesContext`; el corazón de cada
+  tarjeta añade o quita el contenido y la sección se actualiza al instante.
+- La semana, la gráfica y la última celda del mapa de calor reflejan el progreso
+  actual; el resto de valores analíticos son mock estáticos.
+- El detalle expandible de cada tarjeta desktop usa `mobileTip` como nota
+  clínica y `aria-expanded`/`aria-controls`.
 
 ---
 
 ## 12. Perfil
 
-Hook: `src/pages/perfil/hooks/useProfile.js`.
 Página: `src/pages/perfil/Perfil.jsx`.
+Hook único: `src/pages/perfil/hooks/useProfile.js`.
+Datos: `src/data/profileData.js`.
+Vistas: `DesktopPerfil.jsx` y `mobile/MobilePerfil.jsx`.
+
+`Perfil.jsx` ejecuta una sola vez `useProfile` y pasa el mismo objeto `profile` a
+ambas vistas. No hay estado duplicado entre escritorio y móvil.
+
+### 12.1 Datos y estado
 
 | Variable | Tipo | Descripción |
 | --- | --- | --- |
-| `isAuthenticated` | `boolean` | Hay sesión |
-| `session` | objeto o `null` | Sesión activa |
-| `user` | objeto | Usuario mock o fusionado |
-| `summary` | objeto | Resumen diario |
+| `isAuthenticated` | `boolean` | Hay sesión activa |
+| `session` | objeto o `null` | Sesión normalizada de `useAuth` |
+| `user` | objeto | Usuario mock (`currentUser`) |
+| `summary` | objeto | Resumen diario de `useUser` |
 | `displayName` | `string` | `session.name` o `''` |
-| `initials` | `string` | Iniciales del nombre (`getInitials`) |
-| `providerLabel` | `string` | `Correo electrónico`, `Google` o `Apple` |
-| `sessionDate` | `string` | Fecha formateada en `es-ES` |
+| `profileName` | `string` | Nombre editado para la sesión o `displayName` |
+| `initials` | `string` | Iniciales de `profileName` |
+| `providerLabel` | `string` | `Correo electrónico`, `Google`, `Apple` o `Acceso seguro` |
+| `sessionDate` | `string` | `loggedInAt` formateado en `es-ES` |
 | `isRemembered` | `boolean` | `session.remember` |
 | `stats` | objeto | `completedCount`, `totalCount`, `progress`, `favoriteCount`, `streakDays` |
-| `notice` | `string` | “Has cerrado sesión correctamente.” |
+| `copy` | objeto | `profileCopy` |
+| `desktopBiomarkers` | array | 4 biomarcadores de escritorio |
+| `mobileBiomarkers` | array | 4 biomarcadores móviles (incluye hidratación) |
+| `goals` | array | 4 objetivos biológicos |
+| `restrictions` | array | 3 restricciones alimentarias |
+| `devices` | array | 3 dispositivos; 2 activos |
+| `specialists` | array | 2 especialistas con acciones |
+| `privacySettings` | array | 3 preferencias clínicas |
+| `preferences` | objeto | `id → boolean` inicializado desde `enabled` |
+| `mobilePanel` | `string` o `null` | Panel móvil abierto |
+| `notice` | `string` | Aviso global del perfil |
+| `isEditing` | `boolean` | Formulario de nombre visible |
+| `draftName` | `string` | Borrador del nombre |
+| `exportStatus` | `'idle'` o `'loading'` | Generación simulada del PDF |
 | `isLoggingOut` | `boolean` | `logoutStatus === 'loading'` |
-| `handleLogout` | `función async` | Espera 600 ms, hace logout y muestra aviso |
 
-Comportamiento:
+### 12.2 Acciones
 
-- Con sesión: muestra nombre, correo, método de acceso, persistencia, fecha,
-  estadísticas, favoritos y accesos rápidos.
-- Sin sesión: muestra “Modo invitado”, botones a `/login` y `/registro`, y
-  estadísticas locales (hábitos/favoritos en memoria).
-- `handleLogout` evita doble clic mientras `logoutStatus` es `loading`.
-- Tras cerrar sesión, `notice` queda visible en esa montura del componente; al
-  navegar o recargar desaparece.
-- La racha (`streakDays`) proviene de `currentUser` y no se modifica.
+| Acción | Comportamiento |
+| --- | --- |
+| `togglePreference(id)` | Invierte el toggle compartido entre ambas vistas |
+| `toggleMobilePanel(id)` | Abre o cierra un panel; solo uno a la vez |
+| `handleStartEdit` / `handleCancelEdit` | Abre el formulario con el nombre actual o lo descarta |
+| `handleSaveEdit` | Valida que no esté vacío, guarda el nombre para esa sesión y muestra aviso |
+| `setDraftName` | Actualiza el borrador del input |
+| `handleExportReport` | `loading` durante 700 ms y aviso de informe generado |
+| `handleAnalytics` | Aviso de próxima versión |
+| `handleAddGoal` | Aviso de acuerdo con el especialista |
+| `handleLinkDevice` | Aviso de vinculación simulada |
+| `handleOpenDirectory` | Aviso de directorio próximamente |
+| `handleSpecialistAction(specialist, action)` | Mensajes para `contact`, `schedule`, `share` y `log` |
+| `handleDismissNotice` | Limpia el aviso |
+| `handleLogout` | `loading` 600 ms, limpia la sesión, resetea edición/paneles/nombre y muestra aviso |
+
+### 12.3 Comportamiento
+
+- Con sesión, el hero muestra avatar, nombre visible, edad/ciudad, membresía,
+  grupo sanguíneo, alergias, monitoreo, anillo de adherencia y estadísticas.
+- El nombre editado se guarda como `{ sessionId, name }`. Si cambia el `id` de la
+  sesión, se descarta automáticamente; no persiste al recargar.
+- Las preferencias y los paneles viven en `useProfile`, por lo que el cambio de
+  viewport conserva los toggles abiertos.
+- Las acciones de especialistas, dispositivos, objetivos y analítica solo
+  muestran avisos; no hay llamadas externas.
+- `handleLogout` espera 600 ms, limpia `localStorage` y `sessionStorage`, vuelve
+  a la vista de invitado y deja visible “Has cerrado sesión correctamente.”.
+- Sin sesión, ambas vistas muestran `GuestProfile` / `MobileGuestProfile` con
+  CTAs a `/login` y `/registro`, beneficios y actividad local de hábitos y
+  favoritos.
+- La racha (`streakDays`) proviene de `currentUser`; los hábitos y favoritos
+  provienen de sus contextos. Ninguno se persiste.
+- La vista móvil adapta badges, títulos y filas a 320 px: el ciclo se apila, los
+  estados de dispositivos tienen texto corto y los paneles de notificaciones y
+  privacidad son acordeones de un solo panel.
 
 ---
 
@@ -921,17 +1358,17 @@ Comportamiento:
 | Componente | Archivo | Variables/props | Funcionalidad |
 | --- | --- | --- | --- |
 | `AppLayout` | `components/layout/AppLayout.jsx` | — | Compone header, outlet, footer y nav móvil |
-| `Header` | `components/layout/Header.jsx` | `navItems`, `user` | Navegación de escritorio, racha, avatar, CTA a `/habitos` |
+| `Header` | `components/layout/Header.jsx` | `navItems`, `user` | Navegación de escritorio (incluye `/favoritos`), racha, avatar y CTA a `/favoritos` |
 | `DesktopNavLink` | Igual | `item` | Enlace activo con `NavLink` |
 | `MobileNavLink` | Igual | `item` | Variante móvil del enlace |
 | `MobileHeader` | `components/layout/MobileHeader.jsx` | `user` | Avatar, marca, racha y notificaciones |
-| `MobileBottomNav` | `components/layout/MobileBottomNav.jsx` | `items` | 5 destinos: Dashboard, Explorar, Hábitos, Favoritos, Perfil |
+| `MobileBottomNav` | `components/layout/MobileBottomNav.jsx` | `items` | 5 destinos: Dashboard, Contenido (`/contenidos`), Explorar (`/busqueda`), Hábitos (`/favoritos`) y Perfil |
 | `Footer` | `components/layout/Footer.jsx` | `footerLinks`, `currentYear` | Enlaces legales de escritorio |
 
 Notas:
 
 - “Nuevo Registro” del header solo se muestra desde `xl` (1280 px) para evitar
-  overflow a 1024 px; enlaza a `/habitos`.
+  overflow a 1024 px; enlaza a `/favoritos`.
 - El botón de notificaciones y su punto rojo son decorativos; no abren panel.
 - La racha que se muestra es `user.streakDays` (14 por defecto).
 - `MobileHeader` y `MobileBottomNav` solo se ven por debajo de `lg`.
@@ -998,6 +1435,40 @@ Ambas tarjetas:
   `aria-pressed`.
 - El botón CTA de la tarjeta es visual; no abre un detalle ni navega.
 
+### 13.5 Perfil
+
+Escritorio:
+
+| Componente | Archivo | Rol |
+| --- | --- | --- |
+| `DesktopPerfil` | `pages/perfil/DesktopPerfil.jsx` | Cabecera, acciones y composición de secciones |
+| `ProfileHero` | `components/ProfileHero.jsx` | Identidad, badges, anillo de adherencia, edición y estadísticas |
+| `ProfileStatsStrip` | `components/ProfileStatsStrip.jsx` | Hábitos, favoritos y racha del hero |
+| `ProfileProgressRing` | `components/ProfileProgressRing.jsx` | Anillo SVG accesible |
+| `ProfileEditForm` | `components/ProfileEditForm.jsx` | Nombre visible y guardado simulado |
+| `BiomarkerGrid` | `components/BiomarkerGrid.jsx` | 4 tarjetas con footer de barras, progreso o filas |
+| `ProfileGoals` | `components/ProfileGoals.jsx` | Objetivos, restricciones y CTA de alta |
+| `ConnectedDevices` | `components/ConnectedDevices.jsx` | Dispositivos, estado y vinculación |
+| `SpecialistGrid` | `components/SpecialistGrid.jsx` | Equipo clínico y acciones |
+| `PrivacySettings` | `components/PrivacySettings.jsx` | Toggles, sesión y logout |
+| `GuestProfile` | `components/GuestProfile.jsx` | Estado sin sesión |
+| `ProfileStatsGrid` | `components/ProfileStatsGrid.jsx` | 4 métricas locales del invitado |
+| `ProfileNotice` | `components/ProfileNotice.jsx` | Aviso global `role="status"` |
+| `ToggleSwitch` | `components/ToggleSwitch.jsx` | Switch accesible `role="switch"` |
+
+Móvil:
+
+| Componente | Archivo | Rol |
+| --- | --- | --- |
+| `MobilePerfil` | `pages/perfil/mobile/MobilePerfil.jsx` | Composición y cabecera móvil |
+| `MobileProfileHero` | `pages/perfil/mobile/MobileProfileHero.jsx` | Identidad, adherencia, edición y stats |
+| `MobileBiomarkers` | `pages/perfil/mobile/MobileBiomarkers.jsx` | Biomarcadores 2×2 |
+| `MobileProfileGoals` | `pages/perfil/mobile/MobileProfileGoals.jsx` | Objetivos y restricciones compactas |
+| `MobileSpecialists` | `pages/perfil/mobile/MobileSpecialists.jsx` | Especialistas con CTA |
+| `MobileDevices` | `pages/perfil/mobile/MobileDevices.jsx` | Dispositivos activos |
+| `MobileProfileActions` | `pages/perfil/mobile/MobileProfileActions.jsx` | Sesión, exportar, paneles y logout |
+| `MobileGuestProfile` | `pages/perfil/mobile/MobileGuestProfile.jsx` | Estado sin sesión |
+
 ---
 
 ## 14. Utilidades
@@ -1031,14 +1502,14 @@ cambiar una regla, se edita `validation.js`.
 
 ### 14.2 `utils/content.js`
 
-`filterContents(contents, { query = '', filterId = 'all' })`:
+`normalizeSearchText(value)` normaliza a NFD, elimina diacríticos y pasa a
+minúsculas. `matchesContentQuery(content, query)` usa esa normalización para
+buscar en título, `shortTitle`, descripción, categoría, badge, autoría,
+evidencia, etiquetas y campos `mobile`; un texto vacío devuelve `true`.
 
-1. Filtra por categoría: `filterId === 'all'` o
-   `content.filterIds.includes(filterId)`.
-2. Filtra por texto con `matchesQuery`.
-3. `matchesQuery` normaliza a minúsculas y busca en título, descripción,
-   categoría, etiquetas (`tags[].label`) y categoría móvil.
-4. Un texto vacío devuelve todos los contenidos del filtro.
+La misma función alimenta la búsqueda de `/contenidos`, `/busqueda` y los
+buscadores de contenidos guardados de `/favoritos`, de modo que “salmon” y
+“salmón” encuentran el mismo resultado en las tres páginas.
 
 ### 14.3 `utils/user.js`
 
@@ -1082,9 +1553,9 @@ con el perfil social, `remember: true`, y navega con `replace: true`.
 | `dailySummary` | objeto | Meta 68%, hidratación, vitalidad |
 | `dailyMetrics` | array | Hidratación, calorías, actividad y sueño (con variante móvil) |
 | `contentFilters` | array | `all`, desayunos, sin gluten, HIIT, fuerza, mindfulness |
-| `recommendedContent` | array | 2 contenidos completos (salmón y core) |
-| `initialHabits` | array | 5 hábitos; 3 completados |
-| `weeklyConsistency` | array | 7 días; el domingo es “Hoy” |
+| `recommendedContent` | array | 6 contenidos derivados de `exploreContents`; añade `category` desde `homeCategory` |
+| `initialHabits` | array | 6 hábitos enriquecidos; 4 completados |
+| `weeklyConsistency` | array | 7 días con totales de 6; el domingo es “Hoy” con 4/6 |
 | `weeklyAdherence` | string | `92% de adherencia` |
 | `weeklyAdherenceMobile` | string | `92% promedio` |
 | `wellnessTip` | objeto | Tip de luz solar y referencia |
@@ -1112,6 +1583,74 @@ con el perfil social, `remember: true`, y navega con `replace: true`.
 | --- | --- |
 | `socialProfiles` | Perfiles mock de Google y Apple |
 | `providerLabels` | Etiquetas de proveedor para el perfil |
+
+### 15.5 `data/habitsPageData.js`
+
+| Export | Contenido |
+| --- | --- |
+| `habitPageCopy` | Marca, breadcrumb, títulos, fecha, fase, CTAs y copy de guardados de `/favoritos` |
+| `habitCategories` | 4 categorías con icono y clases de color |
+| `habitTimeFilters` | `all`, `morning`, `afternoon`, `evening` |
+| `habitHeroMetrics` | Agua, calma, pasos y sueño para el hero |
+| `habitWeek` | Semana 43 (21–27 de octubre) con hoy = 24 |
+| `habitAdherence` | 7 días de barras y promedio 92% |
+| `consistencyHeatmap` | 35 días generados con `Intl.DateTimeFormat` |
+| `habitSuggestions` | 2 sugerencias IA con el hábito completo que se añade |
+| `habitRecoveryTip` | Tip de preparación para mañana |
+| `habitSpecialist` | Especialista, próxima consulta y copy de bitácora |
+
+### 15.6 `data/profileData.js`
+
+| Export | Contenido |
+| --- | --- |
+| `profileCopy` | Copy desktop/móvil del perfil, acciones, privacidad y estadísticas |
+| `profileMetrics` | Día 48/60, tendencia, membresía y grupo sanguíneo |
+| `desktopBiomarkers` | 4 biomarcadores con footer de barras, progreso o filas |
+| `mobileBiomarkers` | 4 biomarcadores con etiqueta y nota móvil |
+| `profileGoals` | 4 objetivos con icono y etiqueta móvil |
+| `profileRestrictions` | 3 restricciones con clases de chip |
+| `profileDevices` | 3 dispositivos con estado desktop/móvil y actividad |
+| `profileSpecialists` | 2 especialistas con monograma, notas, badges y CTAs |
+| `profilePrivacySettings` | 3 preferencias con título, descripción e `enabled` |
+| `guestProfileCopy` | Copy, beneficios y actividad local del estado invitado |
+
+### 15.7 `data/exploreContentData.js`
+
+| Export | Contenido |
+| --- | --- |
+| `exploreContents` | 6 contenidos completos (2 recetas, 2 artículos y 2 rutinas) con `type`, `exploreFilterIds`, `quick`, imagen local, badge, textos, autoría, evidencia/cita, CTA, `homeCategory`, `filterIds` y variante `mobile` |
+
+Los IDs (`nordic-salmon-bowl`, `circadian-glucose`, `vagal-mobility`,
+`chia-cacao-pudding`, `scfa-longevity` y `zone2-mitochondria`) son los mismos que
+usa `recommendedContent`, por lo que los favoritos se comparten entre Home,
+`/busqueda`, `/contenidos` y `/favoritos`.
+
+### 15.8 `data/explorePageData.js`
+
+| Export | Contenido |
+| --- | --- |
+| `exploreCopy` | Títulos, descripciones, placeholders, conteos, CTAs, avisos y copy de la guía destacada |
+| `exploreFilters` | `all`, nutrición, artículos, entrenamientos, sueño y salud mental con `label`, `mobileLabel` y `count` |
+| `exploreTrends` | 6 tendencias con etiqueta de escritorio, etiqueta móvil y consulta aplicada |
+| `exploreRecentSearches` | 3 búsquedas recientes con texto y consulta |
+| `exploreQuickFilters` | 4 grupos (`duration`, `goal`, `evidence`, `diet`) con sus opciones |
+| `exploreFeatured` | Guía destacada de 21 días con imagen, autoría, evidencia y CTAs desktop/móvil |
+
+Estos textos y catálogos alimentan exclusivamente la página `/busqueda`.
+
+### 15.9 `data/contenidosPageData.js`
+
+| Export | Contenido |
+| --- | --- |
+| `contenidosCopy` | Títulos, descripciones, placeholders, labels, avisos y CTAs de `/contenidos` |
+| `contentSortOptions` | 4 órdenes con etiqueta para escritorio y móvil |
+| `contentTypes` | `all`, recetas, artículos & guías y entrenamientos (etiqueta móvil “Rutinas”) |
+| `contentCollections` | 5 colecciones; nutrición, movimiento y evidencia filtran por tipo; calma por IDs |
+| `contentPopularity` | Puntuación de los 6 IDs para el orden por popularidad |
+| `contentPresentation` | Variante desktop/móvil, autoría, macros, impacto, recomendación y acciones por ID |
+
+Estos datos solo alimentan `/contenidos`; el catálogo de contenidos se comparte
+con Home, Explorar y Favoritos.
 
 ---
 
@@ -1160,27 +1699,39 @@ con el perfil social, `remember: true`, y navega con `replace: true`.
 
 1. En Home, `useSearchForm` mantiene `query` y `activeFilter`.
 2. Al enviar, `buildSearchPath` genera `/busqueda?q=...&filtro=...`.
-3. `useBusquedaPage` lee los parámetros y calcula `results`.
-4. El input de la página se sincroniza con la URL.
-5. Cambiar filtro o enviar actualiza la URL con `replace`.
-6. “Limpiar búsqueda” elimina ambos parámetros y muestra el catálogo completo.
+3. `useExplorarPage` lee `q` y `filtro` al montar, traduce el filtro de Home a
+   una categoría de Explorar y calcula `results`.
+4. El input y la categoría arrancan con esos valores.
+5. A partir de ahí, escribir o cambiar filtros actualiza solo el estado local; la
+   URL conserva los parámetros de entrada.
 
 ### 16.6 Favorito
 
-1. `ContentCard` usa `useFavoriteContent(content.id)`.
+1. `ContentCard` y `MobileContentCard` usan `useFavoriteContent(content.id)`;
+   las tarjetas de Explorar reciben `favorite` y `handleToggleFavorite` desde
+   `useExplorarPage`.
 2. El corazón llama a `toggleFavorite`.
 3. `useFavoritesState` crea un nuevo `Set` y actualiza el contexto.
 4. La tarjeta cambia el icono y `aria-pressed`.
-5. `/favoritos` filtra `recommendedContent` por los IDs guardados.
-6. Al recargar, el `Set` vuelve a estar vacío.
+5. Home, `/contenidos` y `/busqueda` muestran el corazón con el mismo estado;
+   `/favoritos` filtra `recommendedContent` por los IDs guardados.
+6. Al recargar, el `Set` se reinicia con `defaultFavoriteIds` (los seis
+   contenidos iniciales).
 
 ### 16.7 Hábito
 
-1. `HabitsSection`/`MobileHabits` obtienen `habits` y `toggleHabit`.
-2. El checkbox o botón circular llama a `toggleHabit(habit.id)`.
-3. El provider actualiza `completed` y recalcula contadores.
-4. Cambian el banner, el badge, la gráfica semanal, `/habitos` y `/favoritos`.
-5. Al recargar, se vuelve a `initialHabits`.
+1. Home y `/favoritos` obtienen `habits` y `toggleHabit` del contexto.
+2. El checkbox desktop/móvil o la tarjeta de `/favoritos` llama a
+   `toggleHabit(habit.id)`.
+3. El provider actualiza `completed` y recalcula contadores y progreso.
+4. Cambian el banner de Home, el badge de la sección, la gráfica semanal, el
+   hero de `/favoritos`, el anillo general, la celda de hoy de la semana, la
+   barra de hoy del gráfico y la última celda del heatmap.
+5. Las sugerencias IA llaman a `addHabit(suggestion.habit)`; el total global
+   pasa de 6 a 7 u 8 y el nuevo hábito aparece en su categoría.
+6. En `/favoritos`, “Enviar bitácora al doctor” simula 700 ms y queda en estado
+   `success`; “Registrar hábito” desplaza a la lista.
+7. Al recargar, se vuelve a `initialHabits` (solo la sesión persiste).
 
 ### 16.8 Logout
 
@@ -1188,7 +1739,47 @@ con el perfil social, `remember: true`, y navega con `replace: true`.
 2. `handleLogout` pone `logoutStatus = loading` y espera 600 ms.
 3. `logout()` limpia `localStorage` y `sessionStorage` y deja `session = null`.
 4. El perfil pasa a “Modo invitado” y muestra el aviso.
-5. Header/Home vuelven al usuario mock.
+5. Se resetean el nombre editado, la edición, el borrador y el panel móvil.
+6. Header/Home vuelven al usuario mock.
+
+### 16.9 Edición, informe y preferencias del perfil
+
+1. “Editar Perfil” (o “Editar” en el hero) abre `ProfileEditForm` con el nombre
+   actual en `draftName`.
+2. Guardar recorta el texto; vacío muestra aviso y no cierra el formulario.
+3. Un nombre válido se guarda como `savedName` ligado al `session.id` y aparece
+   en las dos vistas.
+4. “Exportar Informe Clínico” cambia a `loading` durante 700 ms y muestra aviso.
+5. Los toggles de privacidad actualizan `preferences`; el cambio se conserva al
+   cambiar entre escritorio y móvil.
+6. En móvil, “Notificaciones” y “Privacidad” abren un panel cada uno; abrir uno
+   cierra el otro.
+7. Las acciones de especialistas, añadir objetivo, vincular dispositivo y abrir
+   el directorio solo muestran avisos simulados.
+8. Al recargar, el nombre, los toggles, los paneles y los avisos se reinician.
+
+### 16.10 Explorar
+
+1. `/busqueda` monta la vista móvil y la de escritorio con un único
+   `useExplorarPage`; ambas reciben el mismo `explore`.
+2. Al montar, `query` y `activeFilter` se inicializan desde `q`/`filtro`; al
+   escribir en el buscador, `query` cambia y `results` se recalcula de inmediato
+   con `matchesContentQuery`.
+3. Al elegir una categoría, `activeFilter` filtra por `exploreFilterIds`.
+4. Al cambiar un select de `QuickFilters` o `MobileFilterPanel`, se actualiza
+   `quickFilters` y se aplica `matchesQuickFilters`.
+5. Una tendencia o búsqueda reciente reemplaza el texto y reinicia categoría y
+   filtros rápidos.
+6. Si no hay coincidencias, `ExploreEmptyState` permite reiniciar todo con
+   `handleResetFilters`.
+7. El corazón guarda o quita el contenido en `FavoritesContext` y muestra el
+   aviso correspondiente; el cambio se refleja en `/favoritos` y Home.
+8. “Cargar más” espera 700 ms y avisa del final de la demo; la paginación
+   numérica solo muestra avisos.
+9. La guía destacada abre un aviso al leerla y su botón de guardado alterna
+   `isFeaturedSaved` con aviso; no se integra en `FavoritesContext`.
+10. En móvil, el botón de filtros abre el panel debajo del header y “Ver filtros”
+    lo abre y desplaza al inicio de la página.
 
 ---
 
@@ -1202,12 +1793,35 @@ con el perfil social, `remember: true`, y navega con `replace: true`.
   perfiles mock.
 - **Sesión:** solo se guardan `id`, `name`, `email`, `provider`, `remember` y
   `loggedInAt`. No se guardan contraseñas.
-- **Favoritos y hábitos:** estado en memoria; se reinician al recargar. Solo la
-  sesión persiste.
+- **Favoritos y hábitos:** estado en memoria; al recargar se restauran los seis
+  favoritos iniciales y las colecciones personalizadas desaparecen. Solo la
+  sesión persiste. Las sugerencias IA añadidas también se pierden.
+- **Explorar (`/busqueda`):** los conteos de la biblioteca (142 y el desglose
+  por categoría) son simulados; solo hay 6 contenidos mock. “Cargar más”, la
+  paginación, los CTA de contenido y el guardado de la guía destacada no tienen
+  backend: muestran avisos o estados locales. La búsqueda, la categoría, los
+  filtros rápidos, el panel móvil y el aviso se reinician al recargar.
+- **Contenidos (`/contenidos`):** la búsqueda comprometida, el tipo y la
+  colección se reflejan en la URL (`q`, `filtro`, `coleccion`), pero el catálogo
+  solo contiene los 6 contenidos mock, los conteos son reales y la paginación se
+  limita a una página. Crear/gestionar colecciones, abrir contenidos y las
+  acciones clínicas de las tarjetas son simulados; no existe una vista de
+  detalle. El orden, la vista y los avisos se reinician al recargar.
+- **Sugerencias IA y bitácora:** son simuladas; no hay llamada a un modelo ni
+  envío real de correo. El botón de la bitácora solo cambia de estado.
+- **Calendario de `/favoritos`:** seleccionar otro día cambia la selección y el
+  resumen textual, pero la lista de hábitos siempre representa el protocolo de
+  hoy; no hay históricos por día.
 - **Desafío semanal:** el registro de cena es local y se pierde al recargar. En
   móvil la tarjeta es informativa/estática.
 - **Newsletter:** checkbox visual en escritorio; no se envía ni persiste.
-- **CTAs de contenido y notificaciones:** son visuales, sin detalle ni panel.
+- **Perfil:** nombre visible, toggles de privacidad, paneles móviles, informe,
+  acciones de especialistas y vinculación de dispositivos son simulados; no
+  persisten al recargar. El nombre solo se conserva mientras dure la sesión
+  montada y se descarta si cambia el `session.id`.
+- **CTAs de contenido y campana del header:** en Home y las tarjetas heredadas
+  son visuales; en Explorar abren un aviso de demostración. Los paneles de
+  notificaciones y privacidad existen solo dentro de `/perfil` móvil.
 - **Sin guards de ruta:** `/perfil` funciona en modo invitado; `/login` y
   `/registro` son accesibles con o sin sesión.
 - **Datos clínicos:** todos los valores son mock y no representan consejo
@@ -1230,9 +1844,15 @@ Rutas de prueba recomendadas:
 - `/` — dashboard y búsqueda.
 - `/login` — validaciones, recuperación y accesos sociales.
 - `/registro` — fuerza, coincidencia y términos.
-- `/contenidos` — búsqueda y filtros.
-- `/busqueda?q=salmón&filtro=gluten-free` — URL directa.
-- `/favoritos` — vacío, guardado y hábitos.
+- `/busqueda` — Explorar: búsqueda, categorías, filtros rápidos, tendencias,
+  favoritos y acciones simuladas.
+- `/contenidos` — biblioteca: búsqueda, tipos, colecciones, orden, grid/lista,
+  favoritos y acciones simuladas.
+- `/busqueda?q=salmón&filtro=gluten-free` — URL directa de Explorar.
+- `/contenidos?q=salmón&filtro=recipe&coleccion=nutrition` — URL directa de la
+  biblioteca; `filtro=gluten-free` también se traduce al tipo `recipe`.
+- `/favoritos` — página combinada con hábitos y contenidos guardados.
+- `/habitos` — redirección a `/favoritos`.
 - `/perfil` — invitado, sesión y logout.
 
 Comprobaciones manuales útiles:
@@ -1240,10 +1860,37 @@ Comprobaciones manuales útiles:
 1. Iniciar sesión con “Recordarme” y recargar: la sesión debe persistir.
 2. Repetir sin “Recordarme” y abrir una pestaña nueva: no debe compartirse.
 3. Cerrar sesión: ambos storages deben quedar limpios.
-4. Guardar un favorito, navegar a `/favoritos` y recargar: el favorito debe
-   desaparecer (estado en memoria).
-5. Cambiar un hábito y comprobar banner, gráfica y perfil.
-6. Escribir una búsqueda desde Home y verificar `q`/`filtro` en la URL.
+4. Guardar un favorito en `/busqueda` o `/contenidos`, navegar por la SPA a
+   `/favoritos` y comprobar que aparece en “Contenidos guardados”. Al recargar
+   debe desaparecer (estado en memoria).
+5. Cambiar un hábito en `/favoritos` y comprobar hero, anillo, semana, gráfica y
+   Home.
+6. Añadir una sugerencia IA y verificar que el total pasa de 6 a 7/8 y que el
+   hábito aparece en su categoría.
+7. Pulsar “Enviar bitácora al doctor” y comprobar `loading` → “Bitácora enviada”.
+8. Probar los filtros y la navegación semanal en escritorio y móvil.
+9. Escribir una búsqueda desde Home y verificar `q`/`filtro` en la URL.
+10. Abrir `/habitos` y comprobar que redirige a `/favoritos`.
+11. En `/perfil`, editar el nombre y comprobar que se refleja en escritorio y
+    móvil; recargar y verificar que vuelve al nombre de la sesión.
+12. En `/perfil`, exportar el informe, alternar los toggles, abrir ambos paneles
+    móviles y cerrar sesión; al terminar deben verse los CTAs de invitado.
+13. En `/busqueda`, buscar “microbiota” y comprobar las coincidencias; probar
+    una tendencia, una categoría, los filtros rápidos, el estado vacío y
+    “Limpiar filtros”.
+14. En móvil, abrir el panel de filtros de Explorar, cambiar un filtro y
+    comprobar el badge; usar “Ver filtros” desde la sección de resultados.
+15. En escritorio, pulsar `Ctrl/Cmd + K` y verificar que el foco va al buscador
+    de Explorar.
+16. Pulsar “Cargar más” y comprobar el estado de carga y el aviso de demo.
+17. En `/contenidos`, buscar “microbiota”, cambiar de tipo y colección, y
+    comprobar que `q`/`filtro`/`coleccion` se reflejan en la URL.
+18. En `/contenidos`, alternar grid/lista, probar los cuatro órdenes, vaciar la
+    búsqueda, verificar el estado vacío y usar “Ver todos los contenidos”.
+19. En `/contenidos`, quitar y volver a guardar un favorito, navegar por la SPA
+    a `/favoritos` y comprobar que “Contenidos guardados” cambia de 5 a 6.
+20. En `/contenidos` móvil, abrir “+ Nueva Colección” y comprobar el aviso por
+    encima del bottom nav.
 
 ---
 
@@ -1261,14 +1908,24 @@ Comprobaciones manuales útiles:
 | Flujo de recuperación | `src/pages/login/hooks/usePasswordRecovery.js` |
 | Flujo de registro | `src/pages/registro/hooks/useRegisterForm.js` |
 | Cálculo de fuerza | `src/pages/registro/utils/passwordStrength.js` |
-| Contenidos, filtros, hábitos o métricas | `src/data/homeData.js` |
-| Lógica de búsqueda del catálogo | `src/utils/content.js` |
+| Contenidos de Home (derivados), filtros, checklist de hábitos o métricas | `src/data/homeData.js` |
+| Catálogo de Explorar | `src/data/exploreContentData.js` |
+| Copy, colecciones, tipos, orden y variantes de `/contenidos` | `src/data/contenidosPageData.js` |
+| Copy, categorías, tendencias y filtros de Explorar | `src/data/explorePageData.js` |
+| Copy, categorías, semana, heatmap y sugerencias de `/favoritos` | `src/data/habitsPageData.js` |
+| Copy, biomarcadores, objetivos, dispositivos y especialistas de `/perfil` | `src/data/profileData.js` |
+| Búsqueda y filtrado compartido de contenidos | `src/utils/content.js` |
 | Búsqueda desde Home | `src/pages/home/hooks/useSearchForm.js` |
-| Búsqueda avanzada y URL | `src/pages/busqueda/hooks/useBusquedaPage.js` |
-| Catálogo `/contenidos` | `src/pages/contenidos/hooks/useContentsPage.js` |
+| Búsqueda, tipo, colección, orden, URL, favoritos y avisos de `/contenidos` | `src/pages/contenidos/hooks/useContenidosPage.js` |
+| Vistas y componentes de `/contenidos` | `src/pages/contenidos/DesktopContenidos.jsx`, `src/pages/contenidos/mobile/MobileContenidos.jsx` y `src/pages/contenidos/components/` |
+| Búsqueda, filtros y acciones simuladas de Explorar | `src/pages/busqueda/hooks/useExplorarPage.js` |
+| Vistas y componentes de `/busqueda` | `src/pages/busqueda/DesktopExplorar.jsx`, `src/pages/busqueda/mobile/MobileExplorar.jsx` y `src/pages/busqueda/components/` |
 | Favoritos | `src/context/hooks/useFavoritesState.js` |
-| Hábitos | `src/context/hooks/useHabitsState.js` |
+| Estado global de hábitos | `src/context/hooks/useHabitsState.js` |
+| Lógica de la página `/favoritos` | `src/pages/habitos/hooks/useHabitosPage.js` |
+| Expansión del detalle de tarjeta desktop | `src/pages/habitos/hooks/useHabitCard.js` |
 | Perfil y logout | `src/pages/perfil/hooks/useProfile.js` |
+| Vistas y componentes de `/perfil` | `src/pages/perfil/DesktopPerfil.jsx`, `src/pages/perfil/mobile/MobilePerfil.jsx` y `src/pages/perfil/components/` |
 | Navegación superior | `src/components/layout/Header.jsx` |
 | Navegación inferior móvil | `src/components/layout/MobileBottomNav.jsx` |
 | Rutas | `src/App.jsx` |
@@ -1302,18 +1959,46 @@ src/
 │   ├── auth/hooks/useSocialAuth.js
 │   ├── auth/*.jsx
 │   ├── layout/*.jsx
-│   └── ui/Icon.jsx
+│   └── ui/
+│       ├── Icon.jsx
+│       ├── FavoriteButton.jsx
+│       └── NoticeToast.jsx
 ├── pages/
 │   ├── home/hooks/*.js
 │   ├── login/hooks/*.js
 │   ├── registro/hooks/useRegisterForm.js
 │   ├── registro/utils/passwordStrength.js
-│   ├── busqueda/hooks/useBusquedaPage.js
-│   ├── contenidos/hooks/useContentsPage.js
-│   ├── favoritos/hooks/useFavoritesPage.js
-│   └── perfil/hooks/useProfile.js
+│   ├── busqueda/
+│   │   ├── components/*.jsx
+│   │   ├── hooks/useExplorarPage.js
+│   │   ├── mobile/*.jsx
+│   │   ├── DesktopExplorar.jsx
+│   │   └── Explorar.jsx
+│   ├── contenidos/
+│   │   ├── components/*.jsx
+│   │   ├── hooks/useContenidosPage.js
+│   │   ├── mobile/*.jsx
+│   │   ├── DesktopContenidos.jsx
+│   │   └── Contenidos.jsx
+│   ├── habitos/
+│   │   ├── components/*.jsx
+│   │   ├── hooks/useHabitosPage.js
+│   │   ├── hooks/useHabitCard.js
+│   │   ├── mobile/*.jsx
+│   │   ├── DesktopHabitos.jsx
+│   │   └── Habitos.jsx
+│   └── perfil/
+│       ├── components/*.jsx
+│       ├── hooks/useProfile.js
+│       ├── mobile/*.jsx
+│       ├── DesktopPerfil.jsx
+│       └── Perfil.jsx
 ├── data/
 │   ├── homeData.js
+│   ├── exploreContentData.js
+│   ├── explorePageData.js
+│   ├── habitsPageData.js
+│   ├── profileData.js
 │   ├── loginData.js
 │   ├── registerData.js
 │   └── authData.js

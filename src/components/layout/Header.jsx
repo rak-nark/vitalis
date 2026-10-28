@@ -6,8 +6,8 @@ import Icon from '../ui/Icon'
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/contenidos', label: 'Contenidos Saludables' },
-  { to: '/busqueda', label: 'Búsqueda' },
-  { to: '/favoritos', label: 'Mis Favoritos y Hábitos' },
+  { to: '/busqueda', label: 'Explorar' },
+  { to: '/favoritos', label: 'Hábitos' },
   { to: '/perfil', label: 'Perfil' },
 ]
 
@@ -71,7 +71,7 @@ export default function Header() {
 
           <nav
             aria-label="Navegación principal"
-            className="hidden items-center gap-6 lg:flex"
+            className="hidden items-center gap-4 lg:flex xl:gap-6"
           >
             {navItems.map((item) => (
               <DesktopNavLink key={item.to} item={item} />
@@ -81,7 +81,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2 sm:gap-4">
           <div
-            className="hidden items-center gap-1.5 rounded-full bg-tertiary-fixed px-3 py-1.5 text-label-md text-on-tertiary-fixed transition-all duration-150 sm:flex"
+            className="hidden shrink-0 items-center gap-1.5 rounded-full bg-tertiary-fixed px-3 py-1.5 text-label-md whitespace-nowrap text-on-tertiary-fixed transition-all duration-150 sm:flex"
             title="Racha de hábitos activos"
           >
             <Icon name="local_fire_department" className="text-lg text-tertiary" filled />
@@ -98,7 +98,7 @@ export default function Header() {
           </button>
 
           <Link
-            to="/habitos"
+            to="/favoritos"
             className="hidden items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-label-lg text-on-primary shadow-sm transition-all duration-150 hover:bg-primary-container active:scale-95 xl:inline-flex"
           >
             <Icon name="add_circle" className="text-lg" />

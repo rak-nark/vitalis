@@ -14,6 +14,14 @@ export function useHabitsState() {
     )
   }, [])
 
+  const addHabit = useCallback((habit) => {
+    setHabits((currentHabits) =>
+      currentHabits.some((currentHabit) => currentHabit.id === habit.id)
+        ? currentHabits
+        : [...currentHabits, habit],
+    )
+  }, [])
+
   const completedCount = habits.filter((habit) => habit.completed).length
   const totalCount = habits.length
   const progress = totalCount
@@ -23,6 +31,7 @@ export function useHabitsState() {
   return {
     habits,
     toggleHabit,
+    addHabit,
     completedCount,
     totalCount,
     progress,

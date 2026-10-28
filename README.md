@@ -2,10 +2,15 @@
 
 Dashboard de nutrición, hábitos y bienestar construido con React. La interfaz
 parte de `reference.html` y `reference2.html` para el dashboard, de
-`loginreference.html` y `loginreference2.html` para iniciar sesión, y de
-`registerreference.html` y `registerreference2.html` para el registro. Está
-desestructurada en componentes reutilizables e incorpora flujos simulados de
-autenticación, búsqueda, favoritos, hábitos y perfil sin backend.
+`loginreference.html` y `loginreference2.html` para iniciar sesión, de
+`registerreference.html` y `registerreference2.html` para el registro, de
+`habitosreference.htm` y `habitosreference2.html` para la página combinada de
+favoritos y hábitos, de `perfilreference.htm` y `perfilreference2.html` para el
+perfil, de `exprorereference.html` y `exprorereference2.html` para Explorar, y
+de `content.html` y `content2.html` para Contenidos Saludables.
+Está desestructurada en componentes reutilizables e incorpora flujos simulados
+de autenticación, búsqueda, exploración, favoritos, hábitos y perfil sin
+backend.
 
 > **Documentación detallada:** consulta
 > [`DOCUMENTACION.md`](./DOCUMENTACION.md) para ver el inventario de variables,
@@ -47,8 +52,9 @@ La app usa un único árbol de rutas con dos capas de presentación:
 
 - El cambio de capa se hace con las utilidades `lg:hidden` / `hidden lg:block`,
   sin duplicar rutas.
-- El bottom nav es una rejilla de 5 columnas y respeta `safe-area-inset-bottom`
-  mediante `pb-safe`. En pantallas de 320 px reduce la tipografía de los labels.
+- El bottom nav móvil tiene 5 destinos (Dashboard, Contenido, Explorar, Hábitos
+  y Perfil) y se centra en un ancho máximo de 420 px. En pantallas de 320 px
+  reduce la tipografía de los labels.
 - El top bar móvil es fijo y las páginas reservan espacio superior e inferior
   para no quedar tapadas por la navegación.
 - Los carruseles horizontales usan scroll táctil con `snap-x` y conservan sus
@@ -84,6 +90,76 @@ simula la creación de la cuenta con estados de carga y éxito, inicia sesión y
 abre el dashboard. Los accesos sociales reutilizan el mismo flujo; no hay
 backend en esta fase.
 
+### Explorar responsive
+
+`/busqueda` es la página “Explorar Biblioteca de Salud” y toma el lenguaje
+visual de las referencias de exploración:
+
+| Viewport | Referencia | Comportamiento |
+| --- | --- | --- |
+| `< 1024px` (`lg`) | `exprorereference2.html` | Header con buscador y acceso a filtros, tendencias deslizables, categorías, guía destacada, tarjetas compactas y “Cargar más”. |
+| `≥ 1024px` (`lg`) | `exprorereference.html` | Cabecera editorial, buscador con atajo `Ctrl/Cmd + K`, búsquedas recientes y tendencias, categorías, filtros rápidos en línea, guía destacada, grid de tarjetas y paginación. |
+
+`Explorar.jsx` ejecuta un único `useExplorarPage` y pasa el mismo objeto
+`explore` a `DesktopExplorar` y `mobile/MobileExplorar`. La búsqueda, la
+categoría, los filtros rápidos, el panel móvil, los favoritos y el aviso son
+compartidos y sobreviven al cambio de viewport. La página acepta `q` y `filtro`
+desde la búsqueda de Home; `filtro` se traduce del catálogo de Home a las
+categorías de Explorar. El catálogo mock vive en
+`src/data/exploreContentData.js` y el copy, las categorías, las tendencias y los
+filtros en `src/data/explorePageData.js`. `homeData.js` deriva
+`recommendedContent` de esos mismos seis contenidos para que Home, `/busqueda`,
+`/contenidos` y `/favoritos` compartan IDs y favoritos.
+
+### Contenidos Saludables responsive
+
+`/contenidos` reconstruye la biblioteca “Contenidos Saludables” a partir de las
+referencias del catálogo:
+
+| Viewport | Referencia | Comportamiento |
+| --- | --- | --- |
+| `< 1024px` (`lg`) | `content2.html` | Cabecera compacta, pestañas de tipo deslizables, buscador con orden rápido, tarjetas apiladas por tipo, CTA “Nueva Colección” y aviso flotante. |
+| `≥ 1024px` (`lg`) | `content.html` | Hero con contador, buscador con atajo `⌘K`/`Ctrl+K`, orden y conmutador grid/lista, colecciones, filtro por tipo, tarjetas por tipo y paginación. |
+
+`Contenidos.jsx` ejecuta un único `useContenidosPage` y pasa el mismo objeto
+`contenidos` a `DesktopContenidos` y `mobile/MobileContenidos`, por lo que
+búsqueda, tipo, colección, orden, vista, favoritos y avisos sobreviven al cambio
+de viewport. La URL acepta `q`, `filtro` y `coleccion`; `filtro` también traduce
+los identificadores heredados de Home. El copy, las colecciones, el orden y la
+presentación de cada tarjeta viven en `src/data/contenidosPageData.js`, y el
+catálogo se comparte con Home, Explorar y Favoritos mediante
+`exploreContentData.js`.
+
+### Favoritos y hábitos responsive
+
+`/favoritos` es la página combinada “Mis Favoritos y Hábitos”. Usa las mismas
+referencias visuales que Home:
+
+| Viewport | Referencia | Comportamiento |
+| --- | --- | --- |
+| `< 1024px` (`lg`) | `habitosreference2.html` | Hero compacto con anillo 4/6, tira semanal, filtros deslizables, tarjetas táctiles, sugerencia IA, contenidos guardados y FAB. |
+| `≥ 1024px` (`lg`) | `habitosreference.htm` | Hero de constancia, progreso por categoría, calendario semanal, tarjetas por categoría, contenidos guardados, analítica, sugerencias IA y tarjeta médica. |
+
+Las dos vistas comparten `HabitsContext` y `FavoritesContext`, pero mantienen su
+propio filtro, día seleccionado y estado de bitácora. El calendario, el anillo y
+la gráfica se recalculan con los hábitos reales; los datos analíticos restantes
+son mock. `/habitos` redirige a `/favoritos` para conservar enlaces antiguos.
+
+### Perfil responsive
+
+`/perfil` reconstruye la ficha clínica con las referencias del perfil:
+
+| Viewport | Referencia | Comportamiento |
+| --- | --- | --- |
+| `< 1024px` (`lg`) | `perfilreference2.html` | Hero de identidad y adherencia, biomarcadores 2×2, objetivos, especialistas, dispositivos, paneles plegables de notificaciones/privacidad y logout. |
+| `≥ 1024px` (`lg`) | `perfilreference.htm` | Hero con anillo de consistencia, biometría en 4 columnas, objetivos y dispositivos en dos paneles, equipo clínico y configuración de privacidad. |
+
+A diferencia de otras páginas, `Perfil.jsx` ejecuta un único `useProfile` y pasa
+el mismo objeto `profile` a ambas vistas. Así se comparten el nombre editado,
+las preferencias, el aviso y el estado de logout aunque cambie el viewport. Los
+datos de la ficha viven en `src/data/profileData.js`; el estado local (nombre,
+toggles, paneles y avisos) se pierde al recargar. Solo la sesión persiste.
+
 ## Estructura
 
 ```text
@@ -91,7 +167,7 @@ src/
 ├── components/
 │   ├── auth/            Marca, headers, footer, botones sociales, aviso y hook de acceso social
 │   ├── layout/          Header, MobileHeader, MobileBottomNav, Footer y AppLayout
-│   └── ui/              Icon
+│   └── ui/              Icon, FavoriteButton y NoticeToast
 ├── context/
 │   ├── AuthContext.jsx       Provider de sesión simulada
 │   ├── UserContext.jsx       Usuario y resumen diario
@@ -100,10 +176,15 @@ src/
 │   ├── authStorage.js        Lectura/escritura en localStorage y sessionStorage
 │   └── hooks/                Consumo de contextos y estado de los providers
 ├── data/
-│   ├── homeData.js      Contenido mock del dashboard y catálogo
-│   ├── loginData.js     Copy e imagen de inicio de sesión
-│   ├── registerData.js  Copy, beneficios y prueba social del registro
-│   └── authData.js      Perfiles simulados de acceso social
+│   ├── homeData.js        Contenido mock del dashboard, catálogo y hábitos globales
+│   ├── exploreContentData.js Catálogo de 6 contenidos y metadatos de filtros de /busqueda
+│   ├── explorePageData.js Copy, categorías, tendencias, filtros y guía destacada de /busqueda
+│   ├── contenidosPageData.js Copy, colecciones, tipos, orden y variantes de tarjeta de /contenidos
+│   ├── habitsPageData.js  Copy, categorías, semana, heatmap y sugerencias de /favoritos
+│   ├── profileData.js     Copy, biomarcadores, objetivos, dispositivos y especialistas de /perfil
+│   ├── loginData.js       Copy e imagen de inicio de sesión
+│   ├── registerData.js    Copy, beneficios y prueba social del registro
+│   └── authData.js        Perfiles simulados de acceso social
 ├── hooks/
 │   ├── useDocumentTitle.js
 │   └── useSocialAuthLogin.js
@@ -124,11 +205,30 @@ src/
 │   │   ├── utils/       Cálculo de fuerza de contraseña
 │   │   ├── DesktopRegister.jsx
 │   │   └── Registro.jsx
-│   ├── contenidos/      Catálogo con búsqueda y filtros + hooks/
-│   ├── busqueda/        Búsqueda sincronizada con la URL + hooks/
-│   ├── habitos/         Vista dedicada de hábitos
-│   ├── favoritos/       Favoritos y seguimiento + hooks/
-│   └── perfil/          Sesión, estadísticas y logout + hooks/
+│   ├── busqueda/
+│   │   ├── components/  Header, buscador, tendencias, categorías, filtros, guía, tarjetas, paginación y aviso
+│   │   ├── hooks/       Búsqueda, filtros, favoritos, avisos y acciones simuladas (useExplorarPage)
+│   │   ├── mobile/      Header, panel de filtros, guía, tarjetas y carga simulada
+│   │   ├── DesktopExplorar.jsx
+│   │   └── Explorar.jsx
+│   ├── contenidos/
+│   │   ├── components/  Hero, colecciones, filtros, tarjetas, paginación y estado vacío
+│   │   ├── hooks/       Búsqueda, tipo, colección, orden, URL, favoritos y avisos (useContenidosPage)
+│   │   ├── mobile/      Cabecera, pestañas, buscador/orden, tarjetas y CTA de nueva colección
+│   │   ├── DesktopContenidos.jsx
+│   │   └── Contenidos.jsx
+│   ├── habitos/
+│   │   ├── components/  Tarjetas, semana, progreso, guardados, analítica, IA y especialista
+│   │   ├── hooks/       Estado de la página y detalle expandible
+│   │   ├── mobile/      Hero, tira semanal, lista, tarjetas, guardados, sugerencia y FAB
+│   │   ├── DesktopHabitos.jsx
+│   │   └── Habitos.jsx
+│   └── perfil/
+│       ├── components/  Hero, biomarcadores, objetivos, dispositivos, especialistas, privacidad y avisos
+│       ├── hooks/       Estado del perfil, edición, toggles y logout
+│       ├── mobile/      Hero, biomarcadores, objetivos, especialistas, dispositivos y acciones
+│       ├── DesktopPerfil.jsx
+│       └── Perfil.jsx
 ├── utils/
 │   ├── async.js         Esperas simuladas
 │   ├── content.js       Búsqueda y filtrado del catálogo
@@ -163,15 +263,15 @@ página viven directamente en esa carpeta; los compartidos van en
 | `/` | Dashboard (Home) |
 | `/login` | Iniciar Sesión |
 | `/registro` | Crear cuenta |
-| `/contenidos` | Contenidos Saludables |
-| `/busqueda` | Búsqueda |
-| `/habitos` | Mis Hábitos |
+| `/busqueda` | Explorar (Biblioteca de Salud) |
+| `/contenidos` | Contenidos Saludables (biblioteca de contenidos) |
 | `/favoritos` | Mis Favoritos y Hábitos |
+| `/habitos` | Redirección a `/favoritos` |
 | `/perfil` | Perfil |
 
-El bottom nav móvil enlaza Dashboard, Explorar, Hábitos, Favoritos y Perfil.
-`/login` y `/registro` viven fuera de `AppLayout` para no mostrar la navegación
-del dashboard.
+El bottom nav móvil enlaza Dashboard, Contenido (`/contenidos`), Explorar
+(`/busqueda`), Hábitos (`/favoritos`) y Perfil. `/login` y `/registro` viven
+fuera de `AppLayout` para no mostrar la navegación del dashboard.
 
 ## Interacciones funcionales
 
@@ -186,23 +286,45 @@ del dashboard.
   visibilidad independiente de ambos campos, términos obligatorios, newsletter
   opcional, accesos sociales simulados y creación de sesión.
 - Búsqueda: la Home (escritorio y móvil) navega a `/busqueda?q=...&filtro=...`;
-  la página sincroniza el formulario con la URL, filtra el catálogo y permite
-  limpiar la consulta y los filtros.
-- Contenidos: búsqueda en vivo por texto y filtros por categoría sobre el
-  catálogo mock existente.
-- Favoritos: el corazón de las tarjetas actualiza el estado global (persistente
-  durante la navegación SPA) y la pestaña muestra los guardados más el
-  seguimiento de hábitos.
-- Perfil: muestra los datos de la sesión activa, método de acceso, persistencia,
-  estadísticas de hábitos/favoritos y logout; sin sesión ofrece acceder o
-  registrarse.
+  Explorar lee esos parámetros al montar, traduce el filtro de Home a sus
+  categorías y permite limpiar la consulta y los filtros.
+- Explorar (`/busqueda`): búsqueda en vivo por título, descripción, autoría,
+  categoría y etiquetas; categorías con conteos; filtros rápidos de duración,
+  objetivo, evidencia y dieta; chips de tendencias y búsquedas recientes que
+  rellenan la búsqueda; estado vacío con reinicio; panel de filtros móvil;
+  favoritos compartidos y avisos para las acciones que aún no tienen backend.
+  “Cargar más”, paginación, el CTA de la guía destacada y el guardado de la guía
+  son simulados.
+- Contenidos Saludables (`/contenidos`): biblioteca de seis contenidos con
+  buscador (atajo `Ctrl/Cmd + K` en escritorio), filtros por tipo y colección,
+  orden por recencia, duración, popularidad o tipo, vista grid/lista, conteos
+  reales, paginación de una sola página, estado vacío, corazón compartido y
+  avisos simulados para colecciones y acciones clínicas. La URL conserva `q`,
+  `filtro` y `coleccion`.
+- Favoritos: el corazón de las tarjetas de Home, `/busqueda`, `/contenidos` y
+  `/favoritos` actualiza el estado global (persistente durante la navegación
+  SPA) y la página combinada muestra los contenidos guardados junto al
+  seguimiento de hábitos. Los seis contenidos de Explorar son los mismos que
+  consume Home mediante `recommendedContent`.
+- Perfil: muestra identidad, biomarcadores, objetivos, restricciones,
+  dispositivos y especialistas. Permite editar el nombre visible (solo en
+  memoria), exportar un informe simulado, alternar preferencias de privacidad,
+  abrir paneles móviles, enviar acciones a especialistas, vincular dispositivos
+  y cerrar sesión. Sin sesión ofrece acceder o registrarse y resume la actividad
+  local de hábitos y favoritos.
 - Checklist de hábitos: actualiza el contador del banner, el badge de la sección,
-  la vista dedicada y la barra de “Hoy” en la gráfica semanal.
-- Acordeón móvil de hábitos con detalle clínico desplegable.
+  la página combinada y la barra de “Hoy” en la gráfica semanal.
+- Página `/favoritos`: título “Mis Favoritos y Hábitos”, filtros por momento del
+  día, navegación semanal, progreso por categoría, mapa de calor, contenidos
+  guardados, sugerencias IA que se añaden al protocolo y envío simulado de
+  bitácora al especialista.
+- Acordeón móvil de hábitos con detalle clínico desplegable y FAB para registrar
+  hábitos.
 - Registro del desafío semanal.
-- Búsqueda con atajo `Ctrl/Cmd + K` y filtros seleccionables.
+- Búsqueda con atajo `Ctrl/Cmd + K` en Home y en Explorar de escritorio, y
+  filtros seleccionables.
 - Navegación activa del header de escritorio y del bottom nav móvil; el botón
-  “Nuevo Registro” enlaza a `/habitos`.
+  “Nuevo Registro” enlaza a `/favoritos`.
 - Todas las vistas se validaron de 320 a 1440 px sin overflow horizontal.
 
 ## Scripts
@@ -215,5 +337,7 @@ npm run preview  # Previsualizar el build
 ```
 
 `reference.html`, `reference2.html`, `loginreference.html`,
-`loginreference2.html`, `registerreference.html` y `registerreference2.html` se
+`loginreference2.html`, `registerreference.html`, `registerreference2.html`,
+`habitosreference.htm`, `habitosreference2.html`, `perfilreference.htm`,
+`perfilreference2.html`, `exprorereference.html` y `exprorereference2.html` se
 conservan como fuentes visuales, pero Vite no las sirve.

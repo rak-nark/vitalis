@@ -1,5 +1,12 @@
-function matchesQuery(content, query) {
-  const normalizedQuery = query.trim().toLowerCase()
+export function normalizeSearchText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+export function matchesContentQuery(content, query) {
+  const normalizedQuery = normalizeSearchText(query).trim()
 
   if (!normalizedQuery) {
     return true
@@ -7,26 +14,24 @@ function matchesQuery(content, query) {
 
   const searchableText = [
     content.title,
+    content.shortTitle,
     content.description,
     content.category,
+    content.badge,
+    content.author,
+    content.authorRole,
+    content.evidence,
     ...(content.tags ?? []).map((tag) => tag.label),
-    ...(content.mobile ? [content.mobile.category] : []),
+    ...(content.mobile
+      ? [
+          content.mobile.category,
+          content.mobile.footer,
+          content.mobile.note,
+        ]
+      : []),
   ]
     .filter(Boolean)
     .join(' ')
-    .toLowerCase()
 
-  return searchableText.includes(normalizedQuery)
-}
-
-export function filterContents(
-  contents,
-  { query = '', filterId = 'all' } = {},
-) {
-  return contents.filter((content) => {
-    const matchesFilter =
-      filterId === 'all' || (content.filterIds ?? []).includes(filterId)
-
-    return matchesFilter && matchesQuery(content, query)
-  })
+  return normalizeSearchText(searchableText).includes(normalizedQuery)
 }
