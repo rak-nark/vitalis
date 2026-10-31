@@ -17,6 +17,10 @@ backend.
 > el funcionamiento de cada hook y el mapa completo de funcionalidades, rutas y
 > archivos.
 
+## Vista previa
+
+![Pantalla principal de Vitalis](./docs/screenshots/home.png)
+
 ## Stack y versiones
 
 | Tecnología | Versión | Notas |
