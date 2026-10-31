@@ -1,13 +1,7 @@
 # Vitalis
 
-Dashboard de nutrición, hábitos y bienestar construido con React. La interfaz
-parte de `reference.html` y `reference2.html` para el dashboard, de
-`loginreference.html` y `loginreference2.html` para iniciar sesión, de
-`registerreference.html` y `registerreference2.html` para el registro, de
-`habitosreference.htm` y `habitosreference2.html` para la página combinada de
-favoritos y hábitos, de `perfilreference.htm` y `perfilreference2.html` para el
-perfil, de `exprorereference.html` y `exprorereference2.html` para Explorar, y
-de `content.html` y `content2.html` para Contenidos Saludables.
+Dashboard de nutrición, hábitos y bienestar construido con React. La interfaz está organizada en vistas responsive para el dashboard, la autenticación,
+la exploración, los contenidos saludables, los hábitos y el perfil.
 Está desestructurada en componentes reutilizables e incorpora flujos simulados
 de autenticación, búsqueda, exploración, favoritos, hábitos y perfil sin
 backend.
@@ -34,25 +28,24 @@ backend.
 | clsx | 2.1.1 | Composición de clases condicionales. |
 | ESLint | 10.13.0 | Flat config. |
 
-### Tailwind v4 vs. la referencia
+### Tailwind v4
 
-`reference.html` usa Tailwind v3 por CDN y un `tailwind.config.js`. Este proyecto
-usa Tailwind v4, por lo que:
+Este proyecto usa Tailwind v4, por lo que:
 
 - El theme vive en `src/index.css` dentro de `@theme`.
 - No existe `tailwind.config.js`.
 - Los gradientes usan `bg-linear-to-*` (sintaxis v4).
 - La paleta Material 3, las tipografías y los tokens de espaciado de la
-  referencia están portados como variables CSS.
+  tokens de espaciado están portados como variables CSS.
 
 ## Diseño responsive
 
 La app usa un único árbol de rutas con dos capas de presentación:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `reference2.html` | Shell móvil con top bar, bottom nav, métricas 2×2, tarjetas deslizables y hábitos en acordeón. |
-| `≥ 1024px` (`lg`) | `reference.html` | Header, hero, grid de 12 columnas, sidebar y footer de escritorio. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Shell móvil con top bar, bottom nav, métricas 2×2, tarjetas deslizables y hábitos en acordeón. |
+| `≥ 1024px` (`lg`) | Header, hero, grid de 12 columnas, sidebar y footer de escritorio. |
 
 - El cambio de capa se hace con las utilidades `lg:hidden` / `hidden lg:block`,
   sin duplicar rutas.
@@ -70,22 +63,21 @@ La app usa un único árbol de rutas con dos capas de presentación:
 
 `/login` es una pantalla independiente del shell del dashboard:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `loginreference2.html` | Top bar transaccional, acceso social, formulario en tarjetas y aviso de seguridad clínica. |
-| `≥ 1024px` (`lg`) | `loginreference.html` | Header institucional, panel visual con testimonio, formulario y footer legal. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Top bar transaccional, acceso social, formulario en tarjetas y aviso de seguridad clínica. |
+| `≥ 1024px` (`lg`) | Header institucional, panel visual con testimonio, formulario y footer legal. |
 
-La referencia móvil original contiene el formulario de registro; para `/login` se
-reutilizó su lenguaje visual con los campos de inicio de sesión.
+La versión móvil de `/login` reutiliza el mismo lenguaje visual con los campos de inicio de sesión.
 
 ### Registro responsive
 
 `/registro` también vive fuera del shell del dashboard:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `registerreference2.html` | Top bar transaccional, acceso social, formulario en tarjetas, medidor de fuerza, coincidencia de contraseña y consentimiento HIPAA. |
-| `≥ 1024px` (`lg`) | `registerreference.html` | Header institucional, panel de beneficios con prueba social, formulario completo y footer legal. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Top bar transaccional, acceso social, formulario en tarjetas, medidor de fuerza, coincidencia de contraseña y consentimiento HIPAA. |
+| `≥ 1024px` (`lg`) | Header institucional, panel de beneficios con prueba social, formulario completo y footer legal. |
 
 El formulario valida cada campo en JavaScript, exige aceptar los términos,
 compara ambas contraseñas y muestra la fuerza en 3 segmentos en escritorio y 4
@@ -97,12 +89,12 @@ backend en esta fase.
 ### Explorar responsive
 
 `/busqueda` es la página “Explorar Biblioteca de Salud” y toma el lenguaje
-visual de las referencias de exploración:
+visual editorial adaptado para exploración:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `exprorereference2.html` | Header con buscador y acceso a filtros, tendencias deslizables, categorías, guía destacada, tarjetas compactas y “Cargar más”. |
-| `≥ 1024px` (`lg`) | `exprorereference.html` | Cabecera editorial, buscador con atajo `Ctrl/Cmd + K`, búsquedas recientes y tendencias, categorías, filtros rápidos en línea, guía destacada, grid de tarjetas y paginación. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Header con buscador y acceso a filtros, tendencias deslizables, categorías, guía destacada, tarjetas compactas y “Cargar más”. |
+| `≥ 1024px` (`lg`) | Cabecera editorial, buscador con atajo `Ctrl/Cmd + K`, búsquedas recientes y tendencias, categorías, filtros rápidos en línea, guía destacada, grid de tarjetas y paginación. |
 
 `Explorar.jsx` ejecuta un único `useExplorarPage` y pasa el mismo objeto
 `explore` a `DesktopExplorar` y `mobile/MobileExplorar`. La búsqueda, la
@@ -118,12 +110,12 @@ filtros en `src/data/explorePageData.js`. `homeData.js` deriva
 ### Contenidos Saludables responsive
 
 `/contenidos` reconstruye la biblioteca “Contenidos Saludables” a partir de las
-referencias del catálogo:
+un catálogo compartido:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `content2.html` | Cabecera compacta, pestañas de tipo deslizables, buscador con orden rápido, tarjetas apiladas por tipo, CTA “Nueva Colección” y aviso flotante. |
-| `≥ 1024px` (`lg`) | `content.html` | Hero con contador, buscador con atajo `⌘K`/`Ctrl+K`, orden y conmutador grid/lista, colecciones, filtro por tipo, tarjetas por tipo y paginación. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Cabecera compacta, pestañas de tipo deslizables, buscador con orden rápido, tarjetas apiladas por tipo, CTA “Nueva Colección” y aviso flotante. |
+| `≥ 1024px` (`lg`) | Hero con contador, buscador con atajo `⌘K`/`Ctrl+K`, orden y conmutador grid/lista, colecciones, filtro por tipo, tarjetas por tipo y paginación. |
 
 `Contenidos.jsx` ejecuta un único `useContenidosPage` y pasa el mismo objeto
 `contenidos` a `DesktopContenidos` y `mobile/MobileContenidos`, por lo que
@@ -137,12 +129,12 @@ catálogo se comparte con Home, Explorar y Favoritos mediante
 ### Favoritos y hábitos responsive
 
 `/favoritos` es la página combinada “Mis Favoritos y Hábitos”. Usa las mismas
-referencias visuales que Home:
+el lenguaje visual de Home:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `habitosreference2.html` | Hero compacto con anillo 4/6, tira semanal, filtros deslizables, tarjetas táctiles, sugerencia IA, contenidos guardados y FAB. |
-| `≥ 1024px` (`lg`) | `habitosreference.htm` | Hero de constancia, progreso por categoría, calendario semanal, tarjetas por categoría, contenidos guardados, analítica, sugerencias IA y tarjeta médica. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Hero compacto con anillo 4/6, tira semanal, filtros deslizables, tarjetas táctiles, sugerencia IA, contenidos guardados y FAB. |
+| `≥ 1024px` (`lg`) | Hero de constancia, progreso por categoría, calendario semanal, tarjetas por categoría, contenidos guardados, analítica, sugerencias IA y tarjeta médica. |
 
 Las dos vistas comparten `HabitsContext` y `FavoritesContext`, pero mantienen su
 propio filtro, día seleccionado y estado de bitácora. El calendario, el anillo y
@@ -151,12 +143,12 @@ son mock. `/habitos` redirige a `/favoritos` para conservar enlaces antiguos.
 
 ### Perfil responsive
 
-`/perfil` reconstruye la ficha clínica con las referencias del perfil:
+`/perfil` reconstruye la ficha clínica con un diseño responsive:
 
-| Viewport | Referencia | Comportamiento |
-| --- | --- | --- |
-| `< 1024px` (`lg`) | `perfilreference2.html` | Hero de identidad y adherencia, biomarcadores 2×2, objetivos, especialistas, dispositivos, paneles plegables de notificaciones/privacidad y logout. |
-| `≥ 1024px` (`lg`) | `perfilreference.htm` | Hero con anillo de consistencia, biometría en 4 columnas, objetivos y dispositivos en dos paneles, equipo clínico y configuración de privacidad. |
+| Viewport | Comportamiento |
+| --- | --- |
+| `< 1024px` (`lg`) | Hero de identidad y adherencia, biomarcadores 2×2, objetivos, especialistas, dispositivos, paneles plegables de notificaciones/privacidad y logout. |
+| `≥ 1024px` (`lg`) | Hero con anillo de consistencia, biometría en 4 columnas, objetivos y dispositivos en dos paneles, equipo clínico y configuración de privacidad. |
 
 A diferencia de otras páginas, `Perfil.jsx` ejecuta un único `useProfile` y pasa
 el mismo objeto `profile` a ambas vistas. Así se comparten el nombre editado,
@@ -340,8 +332,3 @@ npm run lint     # ESLint
 npm run preview  # Previsualizar el build
 ```
 
-`reference.html`, `reference2.html`, `loginreference.html`,
-`loginreference2.html`, `registerreference.html`, `registerreference2.html`,
-`habitosreference.htm`, `habitosreference2.html`, `perfilreference.htm`,
-`perfilreference2.html`, `exprorereference.html` y `exprorereference2.html` se
-conservan como fuentes visuales, pero Vite no las sirve.
